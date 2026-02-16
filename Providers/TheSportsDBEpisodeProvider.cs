@@ -108,6 +108,26 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                     resolvedCleanName = $"{teamAname} vs {teamBname}";
                 }
             }
+            else if (cleanName.Contains("-") && leagueId != null) 
+            {
+               // Try split by hyphen for cases like "VGK-LAK"
+               var parts = cleanName.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+               if (parts.Length == 2)
+               {
+                   var teamAAbbr = parts[0].Trim();
+                   var teamBAbbr = parts[1].Trim();
+                   // Ensure these look like abbreviations (e.g. 2-3 chars, usually uppercase)
+                   if (teamAAbbr.Length <= 4 && teamBAbbr.Length <= 4)
+                   {
+                        var teamAname = _sportsResolverDb.GetTeamFullName(teamAAbbr, leagueId);
+                        var teamBname = _sportsResolverDb.GetTeamFullName(teamBAbbr, leagueId);
+                        if (!string.IsNullOrEmpty(teamAname) && !string.IsNullOrEmpty(teamBname))
+                        {
+                            resolvedCleanName = $"{teamAname} vs {teamBname}";
+                        }
+                   }
+               }
+            }
 
             // --- Use sportName for TSDB API ---
             var eventMatch = await FindMatchWithSwapAndCleanAsync(resolvedCleanName, leagueId, date, cancellationToken);
@@ -163,14 +183,36 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             name = Regex.Replace(name, @"\s+", " ").Trim();
 
             fileDate = null;
-            var m = Regex.Match(raw, @"(\d{2})[ _\-]?(\d{2})[ _\-]?(\d{2,4})");
-            if (m.Success)
+            // Try matching YYYY-MM-DD first (iso-like)
+            var mIso = Regex.Match(raw, @"(\d{4})[ _\-](\d{2})[ _\-](\d{2})");
+            if (mIso.Success)
             {
-                int year = m.Groups[3].Value.Length == 2 ? 2000 + int.Parse(m.Groups[3].Value) : int.Parse(m.Groups[3].Value);
-                int month = int.Parse(m.Groups[2].Value);
-                int day = int.Parse(m.Groups[1].Value);
+                int year = int.Parse(mIso.Groups[1].Value);
+                int month = int.Parse(mIso.Groups[2].Value);
+                int day = int.Parse(mIso.Groups[3].Value);
                 try { fileDate = new DateTime(year, month, day); } catch { }
+                // Remove the date from the name to help team parsing
+                name = name.Replace(mIso.Value, "").Trim();
             }
+            else
+            {
+                // Fallback to DD-MM-YYYY or similar
+                var m = Regex.Match(raw, @"(\d{2})[ _\-]?(\d{2})[ _\-]?(\d{2,4})");
+                if (m.Success)
+                {
+                    int year = m.Groups[3].Value.Length == 2 ? 2000 + int.Parse(m.Groups[3].Value) : int.Parse(m.Groups[3].Value);
+                    int month = int.Parse(m.Groups[2].Value);
+                    int day = int.Parse(m.Groups[1].Value);
+                    try { fileDate = new DateTime(year, month, day); } catch { }
+                    // Remove the date from the name
+                     name = name.Replace(m.Value, "").Trim();
+                }
+            }
+            
+            // Clean up any double spaces or leading/trailing hyphens left by date removal
+            name = Regex.Replace(name, @"\s+", " ").Trim();
+            name = name.Trim('-', ' ');
+
             return name;
         }
 

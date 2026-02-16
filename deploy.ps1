@@ -28,7 +28,8 @@ foreach ($Path in $PossiblePaths) {
         }
         
         Copy-Item -Path $DllPath -Destination "$PluginDir\$DllName" -Force
-        Write-Host "Success! Plugin copied to: $PluginDir\$DllName"
+        Copy-Item -Path "$ProjectDir\sports_resolver.db" -Destination "$PluginDir\sports_resolver.db" -Force
+        Write-Host "Success! Plugin copied to: $PluginDir\$DllName and sports_resolver.db"
         $TargetFound = $true
     }
 }
