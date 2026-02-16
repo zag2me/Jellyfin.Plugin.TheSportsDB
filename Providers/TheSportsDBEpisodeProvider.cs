@@ -11,6 +11,7 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
+using MediaBrowser.Common.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.TheSportsDB.Providers
@@ -41,13 +42,17 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             IHttpClientFactory httpClientFactory,
             ILogger<TheSportsDBEpisodeProvider> logger,
             ILogger<TheSportsDbClient> clientLogger,
-            SportsResolverDb sportsResolverDb // <-- new param
+            IApplicationPaths applicationPaths
         )
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _client = new TheSportsDbClient(httpClientFactory, clientLogger);
-            _sportsResolverDb = sportsResolverDb;
+            
+            // Locate the DB file relative to the plugin assembly
+            string pluginLocation = Plugin.Instance.GetType().Assembly.Location;
+            string dbPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(pluginLocation) ?? "", "sports_resolver.db");
+            _sportsResolverDb = new SportsResolverDb(dbPath);
         }
 
         public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
