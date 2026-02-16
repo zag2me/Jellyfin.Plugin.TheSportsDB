@@ -9,12 +9,12 @@
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
       {
-        "version": "1.0.31.1",
-        "changelog": "Bump v1.0.31.1 - Fix hash mismatch",
+        "version": "1.0.31.2",
+        "changelog": "Bump v1.0.31.2 - Fix cache mismatch",
         "targetAbi": "10.0.0.0",
-        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.31.1/Jellyfin.Plugin.TheSportsDB.zip",
-        "checksum": "9E47F369A199B92F4F5824D22DEAB08603EAFCB4E04F95F007A5BE8BEFE834AD",
-        "timestamp": "2026-02-16T10:15:00Z"
+        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.31.2/Jellyfin.Plugin.TheSportsDB.zip",
+        "checksum": "1E58EC7AA38E43C02BEC03D7B9807458CC8DE3F5C3FEAD94822FE97994C2F5C1",
+        "timestamp": "2026-02-16T10:30:00Z"
       },
       {
         "version": "1.0.30.0",
