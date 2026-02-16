@@ -15,6 +15,7 @@
         "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.31/Jellyfin.Plugin.TheSportsDB.zip",
         "checksum": "A06BB3E2E0F81825A51266F186743C74E97471168F1BA3D7B07C87670FAFD3B4",
         "timestamp": "2026-02-16T09:30:00Z"
+	  },
 	  {
         "version": "1.0.30.0",
         "changelog": "Bump v1.0.30",
