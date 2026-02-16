@@ -20,16 +20,10 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private readonly TheSportsDbClient _client;
         private readonly ILogger<TheSportsDBEpisodeProvider> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly SportsResolverDb _sportsResolverDb; // Added
 
-        private static readonly Dictionary<string, string> KnownLeagueIds = new(StringComparer.OrdinalIgnoreCase)
-        {
-            { "NHL", "4380" },
-            { "EPL", "4328" },
-            { "NFL", "4391" },
-            { "NBA", "4387" },
-            { "MLB", "4424" },
-            { "UFC", "4443" }
-        };
+        // Remove KnownLeagueIds for DB-powered mapping
+
         private static readonly string[] LeagueNameStrips = new[]
         {
             "English Premier League", "NHL", "EPL", "NFL", "NBA", "MLB", "UFC", "La Liga", "Spanish La Liga"
@@ -42,15 +36,18 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         public string Name => "TheSportsDB";
         public bool Supports(BaseItem item) => item is Episode;
 
+        // --- Constructor now requires SportsResolverDb ---
         public TheSportsDBEpisodeProvider(
             IHttpClientFactory httpClientFactory,
             ILogger<TheSportsDBEpisodeProvider> logger,
-            ILogger<TheSportsDbClient> clientLogger
+            ILogger<TheSportsDbClient> clientLogger,
+            SportsResolverDb sportsResolverDb // <-- new param
         )
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _client = new TheSportsDbClient(httpClientFactory, clientLogger);
+            _sportsResolverDb = sportsResolverDb;
         }
 
         public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
@@ -82,13 +79,33 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             _logger.LogInformation("TheSportsDB: Getting episode metadata for \"{Name}\"", info.Name);
 
             string? seriesName = GetSeriesNameFromPath(info.Path);
+
             var config = Plugin.Instance?.Configuration;
             string? leagueId =
-                config?.LeagueMappings?.FirstOrDefault(x => x.Name.Equals(seriesName, StringComparison.OrdinalIgnoreCase))?.LeagueId
-                ?? (KnownLeagueIds.TryGetValue(seriesName ?? "", out var lid) ? lid : null);
+                config?.LeagueMappings?.FirstOrDefault(x => x.Name.Equals(seriesName, StringComparison.OrdinalIgnoreCase))?.LeagueId;
+
+            // --- GET sport name from the DB ---
+            string? sportName = seriesName != null ? _sportsResolverDb.GetSportName(seriesName) : null;
 
             string cleanName = CleanEpisodeName(info.Name, out string? cardType, out DateTime? date);
-            var eventMatch = await FindMatchWithSwapAndCleanAsync(cleanName, leagueId, date, cancellationToken);
+
+            // --- Try to resolve team names (normalize for matching) ---
+            string resolvedCleanName = cleanName;
+            var vsIdx = cleanName.IndexOf(" vs ", StringComparison.OrdinalIgnoreCase);
+            if (vsIdx > 0 && leagueId != null)
+            {
+                var teamAAbbr = cleanName.Substring(0, vsIdx).Trim();
+                var teamBAbbr = cleanName.Substring(vsIdx + 4).Trim();
+                var teamAname = _sportsResolverDb.GetTeamFullName(teamAAbbr, leagueId);
+                var teamBname = _sportsResolverDb.GetTeamFullName(teamBAbbr, leagueId);
+                if (!string.IsNullOrEmpty(teamAname) && !string.IsNullOrEmpty(teamBname))
+                {
+                    resolvedCleanName = $"{teamAname} vs {teamBname}";
+                }
+            }
+
+            // --- Use sportName for TSDB API ---
+            var eventMatch = await FindMatchWithSwapAndCleanAsync(resolvedCleanName, leagueId, date, cancellationToken);
 
             var result = new MetadataResult<Episode>();
             if (eventMatch != null)
@@ -113,7 +130,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var dir = System.IO.Path.GetDirectoryName(path);
             if (dir == null) return null;
             var folderName = System.IO.Path.GetFileName(dir);
-            // Skip if this folder is a season folder
             if (Regex.IsMatch(folderName ?? "", @"\d{4}|Season", RegexOptions.IgnoreCase))
                 dir = System.IO.Path.GetDirectoryName(dir);
             return dir != null ? System.IO.Path.GetFileName(dir) : null;

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TheSportsDB Plugin Settings</title>
+  <meta charset="utf-8">
+  <script src="/web/configuration/plugin/pluginapi.js"></script>
+  <style>
+    /* ... your styles ... */
+  </style>
+</head>
+<body>
+  <h2>TheSportsDB Plugin Settings</h2>
+  <label>
+    <strong>API Key:</strong><br>
+    <input id="apiKey" type="text" placeholder="Default: 3 for testing">
+  </label>
+  <hr>
+  <h3>League Mappings</h3>
+  <div id="mappings"></div>
+  <button id="addMappingBtn" type="button">Add Mapping</button>
+  <br><br>
+  <button id="saveBtn" type="button">Save</button>
+  <span id="statusMsg" style="color:green; margin-left:10px;"></span>
+  <script src="settings.js"></script>
+</body>
