@@ -8,15 +8,15 @@
     "category": "Metadata",
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
-	  {
+      {
         "version": "1.0.31.0",
         "changelog": "Bump v1.0.31",
         "targetAbi": "10.0.0.0",
         "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.31/Jellyfin.Plugin.TheSportsDB.zip",
-        "checksum": "A06BB3E2E0F81825A51266F186743C74E97471168F1BA3D7B07C87670FAFD3B4",
+        "checksum": "A35CDC8D058240A128E91DB348013F6813B1B7E6840C697041A1AF7989F48443",
         "timestamp": "2026-02-16T09:30:00Z"
-	  },
-	  {
+      },
+      {
         "version": "1.0.30.0",
         "changelog": "Bump v1.0.30",
         "targetAbi": "10.0.0.0",
@@ -32,7 +32,7 @@
         "checksum": "796E7039581E072D01E94FCD0BA87E27A3084DB9362896C7152A1F253B1ECF09",
         "timestamp": "2026-02-15T10:00:00Z"
       },
-	  {
+      {
         "version": "1.0.28.0",
         "changelog": "Bump v1.0.28",
         "targetAbi": "10.0.0.0",
@@ -56,7 +56,7 @@
         "checksum": "22093875e9ad70a8bb6b1c99ba98c5a0",
         "timestamp": "2026-02-12T12:00:00Z"
       },
-	  {
+      {
         "version": "1.0.25.0",
         "changelog": "Fixed configuration page saving issue (double submission) and improved search efficiency/accuracy for team names and dates.",
         "targetAbi": "10.0.0.0",
