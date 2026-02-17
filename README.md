@@ -14,8 +14,18 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 
 ## 📦 Installation
 
+### Option 1: Install via Jellyfin Plugin Repository (Recommended)
+
+1. **Open Jellyfin Web Interface**: Log in to your Jellyfin server.
+2. **Go to Plugins**: Navigate to the plugins section.
+3. **Browse or Search**: Locate **TheSportsDB** plugin in the official repository.
+4. **Install**: Click to install directly from the Jellyfin plugin repository.
+5. **Restart Jellyfin**: Restart Jellyfin if prompted to load the plugin.
+
+### Option 2: Manual Installation
+
 1. **Download the Plugin**: Get the latest release from the [GitHub Releases page](https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases)
-2. **Extract the ZIP**: Unzip the archive to your Jellyfin plugins directory
+2. **Extract the ZIP**: Unzip the archive to your Jellyfin plugins directory:
    - **Linux**: `/var/lib/jellyfin/plugins/TheSportsDB/`
    - **Windows**: `%ProgramData%\Jellyfin\Server\plugins\TheSportsDB\`
    - **Docker**: Map to `/config/plugins/TheSportsDB/`
@@ -55,7 +65,7 @@ The plugin includes built-in support for popular leagues (see [Known Leagues](#-
 | Format | Example | Match Rate |
 |--------|---------|------------|
 | `YYYY-MM-DD Team1 vs Team2` | `2026-02-08 Liverpool vs Manchester City.mkv` | ⭐⭐⭐⭐⭐ |
-| `YYYY-MM-DD-ABBR-ABBR` | `2026-02-05-NJD-NYI.mkv` | ⭐⭐⭐⭐⭐ |
+| `YYYY-MM-DD-ABBR-ABBR` | `2026-02-05-NJD-NYI.mkv` | ⭐⭐|
 | `Team1 vs Team2` | `Liverpool vs Manchester City.mkv` | ⭐⭐⭐⭐ |
 | `Full Event Name` | `UFC 315 Jones vs Aspinall.mkv` | ⭐⭐⭐⭐ |
 | `YYYY Team1 vs Team2 DD MM` | `2026 Liverpool vs Manchester City 08 02.mkv` | ⭐⭐⭐ |
@@ -174,7 +184,7 @@ If you use this plugin regularly, we **strongly encourage** you to support TheSp
 
 ### How to Support TheSportsDB
 
-- 🎯 **Patreon (Recommended)**: [patreon.com/thedatadb](https://www.patreon.com/join/thedatadb) — Starting from $10.50/month for individual developers
+ — Starting from $10.50/month for individual developers
 - 🌐 **Website**: [thesportsdb.com](https://www.thesportsdb.com/)
 
 > **Note**: This plugin is not affiliated with TheSportsDB. We simply use their public API and want to ensure the amazing service they provide continues to be available for everyone. If you find value in this plugin, please consider supporting the people who make the data available!
@@ -224,7 +234,7 @@ When reporting issues, please include:
 
 ## 📄 License
 
-This project is open source. Please check the repository for license details.
+This project is licensed under the [MIT License](./LICENSE).
 
 ## 🙏 Acknowledgments
 
