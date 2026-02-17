@@ -17,10 +17,13 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 ### Option 1: Install via Jellyfin Plugin Repository (Recommended)
 
 1. **Open Jellyfin Web Interface**: Log in to your Jellyfin server.
-2. **Go to Plugins**: Navigate to the plugins section.
-3. **Browse or Search**: Locate **TheSportsDB** plugin in the official repository.
-4. **Install**: Click to install directly from the Jellyfin plugin repository.
-5. **Restart Jellyfin**: Restart Jellyfin if prompted to load the plugin.
+2. **Go to Plugins**: Navigate to the manage repositories section.
+3. **Click New Repository
+4. **Enter The Name TheSportsDB
+5. **Enter https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/manifest.json
+6. **Browse or Search**: Locate **TheSportsDB** plugin in the repository.
+7. **Install**: Click to install directly from the Jellyfin plugin repository.
+8. **Restart Jellyfin**: Restart Jellyfin if prompted to load the plugin.
 
 ### Option 2: Manual Installation
 
