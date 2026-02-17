@@ -26,7 +26,7 @@ public class TheSportsDbClient
         };
     }
 
-    private string ApiKey => Plugin.Instance?.Configuration.ApiKey ?? "3";
+    private string ApiKey => Plugin.Instance?.Configuration.ApiKey ?? "123";
     private string BaseUrl => $"https://www.thesportsdb.com/api/v1/json/{ApiKey}";
 
     public async Task<RootObject?> SearchLeagueAsync(string name, CancellationToken cancellationToken)
@@ -65,16 +65,25 @@ public class TheSportsDbClient
         return await GetJsonAsync<RootObject>(url, cancellationToken);
     }
 
-    public async Task<RootObject?> GetEventsByDayAsync(DateTime date, string? leagueId, CancellationToken cancellationToken)
+    public async Task<RootObject?> GetEventsByDayAsync(DateTime date, string? sportName, string? leagueId, string? leagueName, CancellationToken cancellationToken)
     {
         var d = date.ToString("yyyy-MM-dd");
         var url = $"{BaseUrl}/eventsday.php?d={d}";
         
-        // Pass league ID if available for better filtering with premium keys
-        if (!string.IsNullOrEmpty(leagueId))
+        // Filter by sport if available (e.g. &s=Soccer)
+        if (!string.IsNullOrEmpty(sportName))
         {
-            url += $"&l={leagueId}";
+            url += $"&s={sportName}";
         }
+        
+        // Filter by league NAME (URL slug usually) if available (e.g. &l=English_Premier_League)
+        if (!string.IsNullOrEmpty(leagueName))
+        {
+            url += $"&l={Uri.EscapeDataString(leagueName)}";
+        }
+
+        // Note: 'l' parameter expects League Name, not ID. Passing ID causes 0 results.
+        // We will fetch all events for the day (optionally filtered by sport and league) and strict matches will be filtered by the caller/matcher.
         
         return await GetJsonAsync<RootObject>(url, cancellationToken);
     }
@@ -95,6 +104,9 @@ public class TheSportsDbClient
     {
         try
         {
+            // Log the URL for debugging
+            _logger.LogInformation("TheSportsDB API Request: {Url}", url);
+
             using var client = _httpClientFactory.CreateClient(NamedClient.Default);
             using var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
             

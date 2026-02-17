@@ -69,78 +69,59 @@
     </div>
     <script type="text/javascript">
         var TheSportsDBConfigurationPage = {
-            pluginId: '5fce2032-15f1-4171-4141-86105f201010', // Must match Plugin.Id
+            pluginId: '5fce2032-15f1-4171-4141-86105f201010',
 
-            // Renders mapping list from config
-            update: function (page) {
+            loadConfiguration: function (page) {
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(TheSportsDBConfigurationPage.pluginId).then(function (config) {
-                    var apiKey = config.ApiKey || config.apiKey;
-                    if (!apiKey) apiKey = '3';
-
-                    var mappings = config.LeagueMappings || config.leagueMappings || [];
-
+                    var apiKey = config.ApiKey || "123";
                     page.querySelector('#TheSportsDBApiKey').value = apiKey;
 
-                    // Render Mappings preserving values
-                    var list = page.querySelector('#leagueMappingList');
-                    list.innerHTML = '';
-                    mappings.forEach(function (m) {
-                        var name = m.Name || m.name || '';
-                        var id = m.LeagueId || m.leagueId || '';
-                        var row = document.createElement('div');
-                        row.className = 'mappingItem';
+                    var mappings = config.LeagueMappings || [];
+                    var container = page.querySelector('#leagueMappingList');
+                    container.innerHTML = '';
 
-                        var nameInput = document.createElement('input');
-                        nameInput.type = 'text';
-                        nameInput.className = 'mappingName';
-                        nameInput.placeholder = 'Custom Name (EPL, NFL, UFC)';
-                        nameInput.value = name;
+                    if (mappings) {
+                        mappings.forEach(function (m) {
+                            TheSportsDBConfigurationPage.addMappingRow(page, m.Name, m.LeagueId);
+                        });
+                    }
 
-                        var idInput = document.createElement('input');
-                        idInput.type = 'text';
-                        idInput.className = 'mappingId';
-                        idInput.placeholder = 'League ID (e.g. 4328)';
-                        idInput.value = id;
-
-                        // Delete button
-                        var delBtn = document.createElement('button');
-                        delBtn.type = 'button';
-                        delBtn.textContent = '✖';
-                        delBtn.onclick = function () {
-                            row.remove();
-                        };
-
-                        row.appendChild(nameInput);
-                        row.appendChild(idInput);
-                        row.appendChild(delBtn);
-                        list.appendChild(row);
-                    });
-                }).finally(function () {
                     Dashboard.hideLoadingMsg();
                 });
             },
 
-            addMapping: function () {
-                var list = document.querySelector('#leagueMappingList');
+            addMappingRow: function (page, nameVal, idVal) {
+                var container = page.querySelector('#leagueMappingList');
                 var row = document.createElement('div');
                 row.className = 'mappingItem';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '10px';
 
                 var nameInput = document.createElement('input');
                 nameInput.type = 'text';
                 nameInput.className = 'mappingName';
-                nameInput.placeholder = 'Custom Name (EPL, NFL, UFC)';
-                nameInput.value = '';
+                nameInput.setAttribute('is', 'emby-input');
+                nameInput.value = nameVal || '';
+                nameInput.placeholder = 'Folder Name';
+                nameInput.style.flex = '1';
+                nameInput.style.marginRight = '10px';
 
                 var idInput = document.createElement('input');
                 idInput.type = 'text';
                 idInput.className = 'mappingId';
-                idInput.placeholder = 'League ID (e.g. 4328)';
-                idInput.value = '';
+                idInput.setAttribute('is', 'emby-input');
+                idInput.value = idVal || '';
+                idInput.placeholder = 'League ID';
+                idInput.style.flex = '1';
+                idInput.style.marginRight = '10px';
 
                 var delBtn = document.createElement('button');
                 delBtn.type = 'button';
-                delBtn.textContent = '✖';
+                delBtn.className = 'raised';
+                delBtn.setAttribute('is', 'emby-button');
+                delBtn.innerHTML = 'Remove';
                 delBtn.onclick = function () {
                     row.remove();
                 };
@@ -148,43 +129,75 @@
                 row.appendChild(nameInput);
                 row.appendChild(idInput);
                 row.appendChild(delBtn);
-                list.appendChild(row);
+                container.appendChild(row);
+            },
+
+            saveConfiguration: function (page) {
+                Dashboard.showLoadingMsg();
+                var apiKey = page.querySelector('#TheSportsDBApiKey').value;
+                if (!apiKey) apiKey = "123"; // Default if empty
+
+                var newMappings = [];
+                var rows = page.querySelectorAll('.mappingItem');
+                for (var i = 0; i < rows.length; i++) {
+                    var nameInput = rows[i].querySelector('.mappingName');
+                    var idInput = rows[i].querySelector('.mappingId');
+                    // Ensure elements exist
+                    if (nameInput && idInput) {
+                        var name = nameInput.value.trim();
+                        var id = idInput.value.trim();
+                        if (name && id) {
+                            newMappings.push({ Name: name, LeagueId: id });
+                        }
+                    }
+                }
+
+                ApiClient.getPluginConfiguration(TheSportsDBConfigurationPage.pluginId).then(function (config) {
+                    config.ApiKey = apiKey;
+                    config.LeagueMappings = newMappings;
+
+                    ApiClient.updatePluginConfiguration(TheSportsDBConfigurationPage.pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
             }
         };
 
-        // Save handler (preserve all previous on Save, validate inputs)
-        document.querySelector('.TheSportsDBConfigForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            Dashboard.showLoadingMsg();
+        // Scoped initialization when the page is shown
+        document.querySelector('.TheSportsDBConfigurationPage').addEventListener('pageshow', function () {
+            var page = this;
 
-            ApiClient.getPluginConfiguration(TheSportsDBConfigurationPage.pluginId).then(function (config) {
-                config.ApiKey = document.getElementById('TheSportsDBApiKey').value;
+            // Load config
+            TheSportsDBConfigurationPage.loadConfiguration(page);
 
-                // Always collect all rows
-                var newMappings = [];
-                document.querySelectorAll('.mappingItem').forEach(function (row) {
-                    var name = row.querySelector('.mappingName').value.trim();
-                    var id = row.querySelector('.mappingId').value.trim();
-                    // Validate: non-empty and numeric id only
-                    if (name && /^\d+$/.test(id)) {
-                        newMappings.push({ Name: name, LeagueId: id });
-                    }
-                });
-                config.LeagueMappings = newMappings;
+            // Hook up "Add Mapping" button locally to this page instance
+            // We need to find the button. Note: onclick was removed from HTML
+            var addBtn = page.querySelector('button.raised[onclick*="addMapping"]') ||
+                page.querySelector('button.raised');
 
-                ApiClient.updatePluginConfiguration(TheSportsDBConfigurationPage.pluginId, config).then(function (result) {
-                    Dashboard.processPluginConfigurationUpdateResult(result);
-                    // After save, re-render to keep UI in sync
-                    TheSportsDBConfigurationPage.update(document);
-                });
-            }).finally(function () {
-                Dashboard.hideLoadingMsg();
-            });
-        });
+            // Or better, let's select by the text content or position if classes are generic. 
+            // In the HTML it was: <button ... onclick="TheSportsDBConfigurationPage.addMapping()">
+            // I will update the HTML in a separate edit to remove onclick, but here I can select it.
+            // Let's assume I replaced the HTML onclick with an ID for safety in the next step?
+            // Actually, I can just select the button that follows the list.
+            var buttons = page.querySelectorAll('button');
+            for (var i = 0; i < buttons.length; i++) {
+                if (buttons[i].textContent.indexOf('Add Mapping') !== -1) {
+                    buttons[i].onclick = function () {
+                        TheSportsDBConfigurationPage.addMappingRow(page, '', '');
+                    };
+                    buttons[i].removeAttribute('onclick'); // prevent double firing
+                    break;
+                }
+            }
 
-        // On page show, load and render mappings
-        document.addEventListener('DOMContentLoaded', function () {
-            TheSportsDBConfigurationPage.update(document);
+            // Hook up Save form
+            var form = page.querySelector('.TheSportsDBConfigForm');
+            form.onsubmit = function (e) {
+                e.preventDefault();
+                TheSportsDBConfigurationPage.saveConfiguration(page);
+                return false;
+            };
         });
     </script>
 </div>

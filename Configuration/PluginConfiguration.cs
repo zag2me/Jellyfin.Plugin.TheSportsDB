@@ -5,7 +5,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Configuration
 {
     public class PluginConfiguration : BasePluginConfiguration
     {
-        public string ApiKey { get; set; } = "3";
+        public string ApiKey { get; set; } = "123";
 
         // Remove custom getter/setter. Use auto-property only!
         public List<LeagueMapping> LeagueMappings { get; set; } = new();

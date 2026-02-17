@@ -47,6 +47,14 @@ if (Test-Path $ZipPath) {
     Write-Host "`nPackage created successfully!" -ForegroundColor Green
     Write-Host "  Location: $ZipPath" -ForegroundColor White
     Write-Host "  Size: $([math]::Round($ZipSize, 2)) KB" -ForegroundColor White
+    
+    # Calculate checksums
+    $MD5 = Get-FileHash -Path $ZipPath -Algorithm MD5
+    $SHA256 = Get-FileHash -Path $ZipPath -Algorithm SHA256
+    
+    Write-Host "`nChecksums:" -ForegroundColor Yellow
+    Write-Host "  MD5:    $($MD5.Hash.ToLower())" -ForegroundColor White
+    Write-Host "  SHA256: $($SHA256.Hash)" -ForegroundColor Gray
 }
 else {
     Write-Error "Failed to create zip package!"
