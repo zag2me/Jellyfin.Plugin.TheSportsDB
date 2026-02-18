@@ -13,7 +13,7 @@
         "changelog": "Fixed Add Mapping functionality in configuration page.",
         "targetAbi": "10.0.0.0",
         "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.35.0/Jellyfin.Plugin.TheSportsDB.zip",
-        "checksum": "00000000000000000000000000000000",
+        "checksum": "eb9f5480cf6f2206a2695377d33e6c51",
         "timestamp": "2026-02-18T11:00:00Z"
       },
       {
