@@ -51,7 +51,8 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             _client = new TheSportsDbClient(httpClientFactory, clientLogger);
             
             // Locate the DB file relative to the plugin assembly
-            string pluginLocation = Plugin.Instance.GetType().Assembly.Location;
+            // Use typeof(...) to avoid reliance on Plugin.Instance which might be null during early init
+            string pluginLocation = typeof(TheSportsDBEpisodeProvider).Assembly.Location;
             string dbPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(pluginLocation) ?? "", "sports_resolver.db");
             _sportsResolverDb = new SportsResolverDb(dbPath);
         }
