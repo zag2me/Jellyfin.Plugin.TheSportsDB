@@ -49,8 +49,7 @@
                     <div id="leagueMappingList">
                         <!-- Mappings will be injected here -->
                     </div>
-                    <button is="emby-button" type="button" class="raised"
-                        onclick="TheSportsDBConfigurationPage.addMapping()">
+                    <button is="emby-button" type="button" class="raised" id="btnAddMapping">
                         <span>Add Mapping</span>
                     </button>
                     <div class="fieldDescription">
@@ -171,33 +170,22 @@
             TheSportsDBConfigurationPage.loadConfiguration(page);
 
             // Hook up "Add Mapping" button locally to this page instance
-            // We need to find the button. Note: onclick was removed from HTML
-            var addBtn = page.querySelector('button.raised[onclick*="addMapping"]') ||
-                page.querySelector('button.raised');
-
-            // Or better, let's select by the text content or position if classes are generic. 
-            // In the HTML it was: <button ... onclick="TheSportsDBConfigurationPage.addMapping()">
-            // I will update the HTML in a separate edit to remove onclick, but here I can select it.
-            // Let's assume I replaced the HTML onclick with an ID for safety in the next step?
-            // Actually, I can just select the button that follows the list.
-            var buttons = page.querySelectorAll('button');
-            for (var i = 0; i < buttons.length; i++) {
-                if (buttons[i].textContent.indexOf('Add Mapping') !== -1) {
-                    buttons[i].onclick = function () {
-                        TheSportsDBConfigurationPage.addMappingRow(page, '', '');
-                    };
-                    buttons[i].removeAttribute('onclick'); // prevent double firing
-                    break;
-                }
+            var addBtn = page.querySelector('#btnAddMapping');
+            if (addBtn) {
+                addBtn.addEventListener('click', function () {
+                    TheSportsDBConfigurationPage.addMappingRow(page, '', '');
+                });
             }
 
             // Hook up Save form
             var form = page.querySelector('.TheSportsDBConfigForm');
-            form.onsubmit = function (e) {
-                e.preventDefault();
-                TheSportsDBConfigurationPage.saveConfiguration(page);
-                return false;
-            };
+            if (form) {
+                form.onsubmit = function (e) {
+                    e.preventDefault();
+                    TheSportsDBConfigurationPage.saveConfiguration(page);
+                    return false;
+                };
+            }
         });
     </script>
 </div>
