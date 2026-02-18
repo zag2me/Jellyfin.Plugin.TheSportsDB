@@ -18,9 +18,9 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 
 1. **Open Jellyfin Web Interface**: Log in to your Jellyfin server.
 2. **Go to Plugins**: Navigate to the manage repositories section.
-3. **Click New Repository
-4. **Enter The Name TheSportsDB
-5. **Enter https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/manifest.json
+3. **Click New Repository**
+4. **Enter The Name TheSportsDB**
+5. **Enter `https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/manifest.json`**
 6. **Browse or Search**: Locate **TheSportsDB** plugin in the repository.
 7. **Install**: Click to install directly from the Jellyfin plugin repository.
 8. **Restart Jellyfin**: Restart Jellyfin if prompted to load the plugin.
@@ -35,6 +35,31 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 3. **Ensure Database File**: The `sports_resolver.db` file must be in the plugin directory (it's included in the release)
 4. **Restart Jellyfin**: Restart Jellyfin to load the plugin
 
+---
+
+## ⚡️ **CRUCIAL: Folder/Mapping Alignment**
+
+**To ensure accurate metadata and art, your league folder names and TheSportsDB league mappings MUST match (case-insensitive)!**
+
+> **You MUST configure your league mappings _before_ scanning your library with Jellyfin.**  
+> If you add new leagues or rename league folders, update the mapping and rescan.
+
+- The **immediate parent folder** of your event files should exactly match a mapping entry (e.g., `EPL`, `ICC T20 WC`, `NFL`, etc.).
+- If the folder name does not match a league mapping, the plugin will not be able to resolve the correct league, causing lookups to fail and no metadata/posters to appear.
+- Any league or competition available on TheSportsDB can be mapped; simply match your folder name and set the correct League ID.
+
+#### **Example Table**
+
+| Folder Name        | League ID | Example Path                                   |
+|--------------------|-----------|------------------------------------------------|
+| EPL                | 4328      | `/media/Sports/EPL/Season 2025-26/2026-02-08 Liverpool vs Manchester City.mkv`     |
+| ICC T20 WC         | 5103      | `/media/Sports/ICC T20 WC/2026/ICC Mens T20 World Cup 2026-02-15 India Cricket vs Pakistan Cricket.mkv` |
+| NFL                | 4391      | `/media/Sports/NFL/Season 2025/2026-01-15 Buffalo Bills vs Baltimore Ravens.mkv`   |
+
+> **Note:** If you rename a folder (e.g., `ICC T20 WC` → `ICC T20 Mens WC`), you must create a matching mapping in the plugin for the new folder name and rescan the library.
+
+---
+
 ## ⚙️ Configuration
 
 ### Setting up your API Key
@@ -43,52 +68,56 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 2. Go to **Dashboard > Plugins > TheSportsDB**
 3. Enter your **API Key**
 4. Click **Save**
-5. **Note**: Jellyfin will restart automatically after saving configuration changes (this is normal behavior)
+
+> **Note:** Jellyfin will restart automatically after saving configuration changes.
 
 ### League Mappings
 
-The plugin includes built-in support for popular leagues (see [Known Leagues](#-known-leagues-built-in) below). For custom or abbreviated folder names that aren't automatically detected, you can create manual mappings:
+The plugin includes built-in support for popular leagues (see [Known Leagues](#-known-leagues-built-in) below). **For custom or abbreviated folder names, you must create manual mappings before scanning your library:**
 
 1. Go to **Dashboard > Plugins > TheSportsDB**
 2. Scroll to **League Mappings**
 3. Click **Add Mapping**
-4. Enter your **Folder Name** — This is just the folder name (e.g., `EPL`, `Süper Lig`), **NOT** the full path
-5. Enter the **TheSportsDB League ID** (e.g., `4339` for Süper Lig)
-   - You can find League IDs in the URL of the league page on TheSportsDB.com
+4. Enter your **Folder Name** — just the parent folder name, NOT the full path (e.g., `EPL`, `Süper Lig`)
+5. Enter the **TheSportsDB League ID** (you can find these on TheSportsDB.com league pages)
 6. Click **Save**
-7. **Note**: Saving configuration will restart Jellyfin (this is normal)
-8. Rescan your library
+
+> **Reminder**: Mapping changes require a **full library rescan** for new/changed folders.
+
+---
 
 ## 📝 Recommended File Naming Guide
 
-**This is the most important section for getting great results!** The plugin parses filenames to match against TheSportsDB events, so naming conventions have a huge impact on match accuracy.
+**File and directory naming matters most for accurate matching!** Clean, consistent filenames and correct folder mapping produce the best results.
 
 ### Best Formats (by Match Rate)
 
-| Format | Example | Match Rate |
-|--------|---------|------------|
-| `YYYY-MM-DD Team1 vs Team2` | `2026-02-08 Liverpool vs Manchester City.mkv` | ⭐⭐⭐⭐⭐ |
-| `YYYY-MM-DD-ABBR-ABBR` | `2026-02-05-NJD-NYI.mkv` | ⭐⭐|
-| `Team1 vs Team2` | `Liverpool vs Manchester City.mkv` | ⭐⭐⭐⭐ |
-| `Full Event Name` | `UFC 315 Jones vs Aspinall.mkv` | ⭐⭐⭐⭐ |
-| `YYYY Team1 vs Team2 DD MM` | `2026 Liverpool vs Manchester City 08 02.mkv` | ⭐⭐⭐ |
-| `League YYYY Team1 vs Team2 DD MM codec` | `EPL 2026 Liverpool vs Manchester City 08 02 720p.mkv` | ⭐⭐ |
+| Format                   | Example                                                     | Match Rate |
+|--------------------------|-------------------------------------------------------------|------------|
+| `YYYY-MM-DD Team1 vs Team2` | `2026-02-08 Liverpool vs Manchester City.mkv`               | ⭐⭐⭐⭐⭐      |
+| `YYYY-MM-DD-ABBR-ABBR`      | `2026-02-05-NJD-NYI.mkv`                                    | ⭐⭐         |
+| `Team1 vs Team2`            | `Liverpool vs Manchester City.mkv`                          | ⭐⭐⭐⭐       |
+| `Full Event Name`           | `UFC 315 Jones vs Aspinall.mkv`                             | ⭐⭐⭐⭐       |
+| `YYYY Team1 vs Team2 DD MM` | `2026 Liverpool vs Manchester City 08 02.mkv`               | ⭐⭐⭐        |
+| `League YYYY Team1 vs Team2 ...` | `EPL 2026 Liverpool vs Manchester City 08 02 720p.mkv` | ⭐⭐         |
 
 ### Key Naming Rules
 
-- **✅ Always use ISO dates (YYYY-MM-DD)** when possible — This avoids DD/MM vs MM/DD ambiguity entirely
-- **✅ Use full team names** where possible (e.g., "Liverpool" not "LIV", "Manchester City" not "MCI")
-- **✅ Use `vs` as the separator** between team names — This matches TheSportsDB's event naming convention
-- **✅ Keep the folder name as the league abbreviation** (e.g., `EPL`, `NHL`, `NBA`, `UFC`)
-- **✅ Avoid scene tags in filenames** if possible — Remove `720p`, `1080p`, `Fubo`, `60fps`, `x265`, `HEVC`, etc. The plugin tries to strip these, but cleaner names = better results
-- **✅ Season folders should contain the year(s)** — Use `Season 2025-26` or `Season 2025-2026`
-- **✅ Team abbreviations work best for NHL** and other leagues with standard 3-letter codes (e.g., `NJD`, `NYI`, `EDM`, `PIT`)
-- **✅ For soccer/football, use full team names** — Abbreviations like `LIV` or `MCI` are less standardized internationally
+- **✅ Always use ISO dates (`YYYY-MM-DD`)** if possible
+- **✅ Use full team names** where possible (less ambiguous)
+- **✅ Use `vs` as the separator** between team names
+- **✅ Make sure the folder name is mapped** in plugin settings ("League Mappings")
+- **✅ Avoid scene tags/noise in filenames** when possible (e.g., `720p`, `Fubo`, `x264`—the plugin will attempt to strip these, but cleaner is better)
+- **✅ Use season/year subfolders for organization**
+- **✅ 3-letter team abbreviations are best for NHL**
+- **✅ Soccer/football: Use full club names**
 
-### Recommended Folder Structure
+### Recommended Folder Structure (Universal Format)
 
-```
-/Media/Sports/
+Use POSIX-style forward slashes for cross-platform compatibility.
+
+```plaintext
+/media/Sports/
 ├── EPL/
 │   └── Season 2025-26/
 │       ├── 2026-02-08 Liverpool vs Manchester City.mkv
@@ -110,87 +139,91 @@ The plugin includes built-in support for popular leagues (see [Known Leagues](#-
         └── 2026-03-15 UFC 315 Jones vs Aspinall.mkv
 ```
 
+---
+
 ## 🔧 How the Plugin Works
 
 The plugin uses a sophisticated matching pipeline to find the correct metadata for your sports files:
 
-1. **Derive Series/League Name**: Extracts the league name from your folder structure
+1. **Derive Series/League Name**: Extracts the league name from your folder structure (parent folder is used for mapping).
 2. **Resolve League ID**: Searches for the league ID in this order:
-   - User-configured League Mappings
+   - User-configured League Mappings (requires mapping before scanning the library!)
    - Built-in internal league map (NHL, EPL, NFL, NBA, MLB, UFC)
-   - Local sports_resolver.db database
-   - TheSportsDB API search (as last resort)
+   - Local `sports_resolver.db` database
+   - TheSportsDB API search (last resort)
 3. **Clean the Filename**: Removes dates, league prefixes, and scene tags from the filename
 4. **Expand Team Abbreviations**: Converts common abbreviations to full team names (e.g., MTL → Montreal Canadiens)
-5. **Search TheSportsDB API**: Searches for matching events using the cleaned team names
-6. **Date-Based Fallback**: If no match is found, falls back to date-based lookup with ±1 day tolerance (to handle timezone differences)
+5. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID/slug, and date if available
+6. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±1 day tolerance (helps with timezone slippage)
+
+---
 
 ## 🏆 Known Leagues (Built-in)
 
 The following leagues have built-in support and don't require manual mapping:
 
-| League | League ID | Sport |
-|--------|-----------|-------|
-| NHL | 4380 | Ice Hockey 🏒 |
-| EPL | 4328 | Soccer ⚽ |
-| NFL | 4391 | American Football 🏈 |
-| NBA | 4387 | Basketball 🏀 |
-| MLB | 4424 | Baseball ⚾ |
-| UFC | 4463 | Mixed Martial Arts 🥊 |
+| League | League ID | Sport           |
+|--------|-----------|-----------------|
+| NHL    | 4380      | Ice Hockey 🏒    |
+| EPL    | 4328      | Soccer ⚽        |
+| NFL    | 4391      | American Football 🏈 |
+| NBA    | 4387      | Basketball 🏀    |
+| MLB    | 4424      | Baseball ⚾      |
+| UFC    | 4463      | Mixed Martial Arts 🥊 |
 
-**Note**: ANY league on TheSportsDB can be used via the League Mappings configuration. These are just the ones that work automatically without configuration.
+**Note:** Any league on TheSportsDB can be used via League Mappings. The above are built-in for convenience.
+
+---
 
 ## 🛠️ Troubleshooting
 
 ### Common Issues and Solutions
 
 **"No metadata found" or Empty Results**
-- Check your filename format — Try using ISO date format (YYYY-MM-DD)
+- Check your filename format — use ISO date and clean team names
 - Verify the event exists on TheSportsDB.com
 - Check your API key is correctly configured
+- Make sure your **league folder is mapped in plugin settings before library scan**
 - Try using full team names instead of abbreviations
 
 **"Season Unknown"**
-- Ensure your Season folder contains the year (e.g., `Season 2025-26` or `Season 2025-2026`)
+- Ensure your season folder contains the year (e.g., `Season 2025-26`)
 - Check that the parent folder matches a known league or has a mapping configured
 
 **"Logs stop after saving configuration"**
-- This is normal! Jellyfin automatically restarts after configuration changes
-- Wait 30-60 seconds for Jellyfin to restart, then check your library
+- Normal: Jellyfin always restarts after plugin config is saved
+- Wait a minute for the server to reload, then check your library again
 
 **"Wrong match found" or Incorrect Metadata**
-- Use more specific filenames with ISO dates (YYYY-MM-DD)
-- Include full team names rather than abbreviations
-- Verify the teams/event names match what's on TheSportsDB.com
+- Use more specific filenames with ISO dates (`YYYY-MM-DD`)
+- Include full team names
+- Verify your names match TheSportsDB.com events
 
 **Plugin doesn't recognize my league folder (e.g., "Bundesliga", "La Liga")**
-- Add a League Mapping in the plugin configuration
-- Find the League ID by visiting the league page on TheSportsDB.com and checking the URL
-- The League ID is the number in the URL: `https://www.thesportsdb.com/league/4331` → League ID = `4331`
+- Add a League Mapping in the plugin configuration before your first scan
+- Find the League ID on TheSportsDB.com (`https://www.thesportsdb.com/league/4331` → ID is `4331`)
+
+---
 
 ## ❤️ Supporting TheSportsDB
 
-This plugin relies entirely on the amazing work done by the team at [TheSportsDB](https://www.thesportsdb.com/). They provide a comprehensive sports database API that makes plugins like this possible.
+This plugin relies entirely on the amazing work done by the team at [TheSportsDB](https://www.thesportsdb.com/). They provide a comprehensive API that makes plugins like this possible.
 
 ### Free API Key
 
-You can get started with a **free API key** for testing and small-scale usage. Register at [TheSportsDB.com](https://www.thesportsdb.com/).
+Get started with a **free API key** for testing and personal use. Register at [TheSportsDB.com](https://www.thesportsdb.com/).
 
-### Premium API (Recommended)
+### Premium API (Recommended!)
 
-If you use this plugin regularly, we **strongly encourage** you to support TheSportsDB by subscribing to their Patreon. A premium API key provides:
+Please consider a [Patreon subscription](https://www.thesportsdb.com/patreon.php) if you use this plugin regularly:
+- ✅ Higher rate limits
+- ✅ Extra endpoints and more data
+- ✅ Live scores and advanced info
+- ✅ Support ongoing maintenance and improvements
 
-- ✅ Better API rate limits and reliability
-- ✅ Access to additional endpoints and data
-- ✅ Live scores and more detailed event information
-- ✅ Supporting the continued development and maintenance of the database
+**Note:** This plugin is unaffiliated with TheSportsDB—please support their data service if you benefit from it!
 
-### How to Support TheSportsDB
-
- — Starting from $10.50/month for individual developers
-- 🌐 **Website**: [thesportsdb.com](https://www.thesportsdb.com/)
-
-> **Note**: This plugin is not affiliated with TheSportsDB. We simply use their public API and want to ensure the amazing service they provide continues to be available for everyone. If you find value in this plugin, please consider supporting the people who make the data available!
+---
 
 ## 🤝 Contributing
 
@@ -210,8 +243,8 @@ We welcome contributions! Here's how you can help:
    ```
 
 3. Package the plugin:
-   ```powershell
-   # Windows
+   ```bash
+   # On Windows
    .\build-and-package.ps1
    ```
 
@@ -235,13 +268,16 @@ When reporting issues, please include:
 6. Push to your fork (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
+---
+
 ## 📄 License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+---
 
 ## 🙏 Acknowledgments
 
 - **TheSportsDB Team** — For providing the incredible sports database API
 - **Jellyfin Team** — For the amazing media server platform
-- **Contributors** — Thank you to everyone who has contributed to this plugin!
-
+- **Contributors** — Thank you to everyone who has contributed!
