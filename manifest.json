@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
       {
+        "version": "1.0.37.0",
+        "changelog": "Bump v1.0.37.0 - Fixed Short names and local db search",
+        "targetAbi": "10.0.0.0",
+        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v1.0.37.0/Jellyfin.Plugin.TheSportsDB.zip",
+        "checksum": "95AFC6C15FC72056A9DBAC3950569645",
+        "timestamp": "2026-03-01T11:02:00Z"
+      },
+      {
         "version": "1.0.36.0",
         "changelog": "Bump v1.0.36.0 - Fixed Add Mapping functionality and startup crash (restart loop).",
         "targetAbi": "10.0.0.0",
