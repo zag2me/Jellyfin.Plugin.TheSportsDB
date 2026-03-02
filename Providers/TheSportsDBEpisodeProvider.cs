@@ -44,7 +44,11 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private static readonly string[] NoiseTags = new[]
         {
             "Fubo", "Peacock", "Sky", "TNT", "Amazon", "BBC", "ITV",
-            "HDTV", "WEB-DL", "WEBRip", "X264", "H264", "X265", "H265", "HEVC", "AAC", "MKV", "MP4"
+            "HDTV", "WEB-DL", "WEBRip", "X264", "H264", "X265", "H265", "HEVC", "AAC", "MKV", "MP4",
+            "Full Match Replay", "Full Match", "Match Replay",
+            "SkySportsOne", "SkySports", "SkySport",
+            "MWR", "F1TV", "DDP51", "DDP5",
+            "English", "HQ"
         };
 
         public string Name => "TheSportsDB";
@@ -250,13 +254,18 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 // P2/P3: team + date
                 if (!string.IsNullOrEmpty(teamA) && !string.IsNullOrEmpty(teamB))
                 {
+                    static bool TeamMatch(string evTeam, string fileTeam) =>
+                        (evTeam.Length >= 3 && fileTeam.Length >= 3)
+                            ? (evTeam.Contains(fileTeam, StringComparison.OrdinalIgnoreCase) ||
+                               fileTeam.Contains(evTeam, StringComparison.OrdinalIgnoreCase))
+                            : string.Equals(evTeam, fileTeam, StringComparison.OrdinalIgnoreCase);
+
                     foreach (var ev in evList)
                     {
                         if (string.IsNullOrEmpty(ev.strHomeTeam) || string.IsNullOrEmpty(ev.strAwayTeam)) continue;
-                        bool tm = (string.Equals(ev.strHomeTeam, teamA, StringComparison.OrdinalIgnoreCase) && string.Equals(ev.strAwayTeam, teamB, StringComparison.OrdinalIgnoreCase))
-                               || (string.Equals(ev.strHomeTeam, teamB, StringComparison.OrdinalIgnoreCase) && string.Equals(ev.strAwayTeam, teamA, StringComparison.OrdinalIgnoreCase));
-                        bool dm = DateTime.TryParse(ev.dateEvent, out var ed) && ed.Date == dp.Date;
-                        if (tm && dm)
+                        bool tm = (TeamMatch(ev.strHomeTeam, teamA) && TeamMatch(ev.strAwayTeam, teamB))
+                               || (TeamMatch(ev.strHomeTeam, teamB) && TeamMatch(ev.strAwayTeam, teamA));
+                        if (tm)
                         {
                             _logger.LogInformation("TheSportsDB: P{P} (teams): {H} vs {A}", hyphen ? "3" : "2", ev.strHomeTeam, ev.strAwayTeam);
                             return ev;
@@ -318,6 +327,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             name = Regex.Replace(name, @"\bPart\s?\d+\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bUFC\s\d{3}\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bUFC\sFight\sNight\b", "", RegexOptions.IgnoreCase);
+            // Strip "Match N" or "Round N" prefix patterns (e.g. "Match 52", "Round 24")
+            name = Regex.Replace(name, @"\bMatch\s\d+\b", "", RegexOptions.IgnoreCase);
+            name = Regex.Replace(name, @"\bRound\s\d+\b", "", RegexOptions.IgnoreCase);
             foreach (var t in NoiseTags)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(t) + @"\b", "", RegexOptions.IgnoreCase);
             foreach (var s in SuffixStrips)
@@ -330,6 +342,8 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var mE = Regex.Match(name, @"(\d{2})[\.\-_](\d{2})[\.\-_](\d{4})");
             if (mE.Success) name = name.Replace(mE.Value, "").Trim();
             name = Regex.Replace(name, @"\b(19|20)\d{2}\b", "", RegexOptions.IgnoreCase);
+            // Strip any isolated leading number that appears before "vs" (e.g. "268 Moreno vs Kavanagh" → "Moreno vs Kavanagh")
+            name = Regex.Replace(name, @"^\d+\s+(?=\S)", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
             return name.Trim('-', ' ', '~', '_');
         }
