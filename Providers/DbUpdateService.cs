@@ -64,34 +64,23 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 }
 
                 string remoteTag = release.TagName ?? "";
-                string versionFile = Path.Combine(_appPaths.DataPath, "sports_resolver_version.txt");
-                string localTag = File.Exists(versionFile)
-                    ? File.ReadAllText(versionFile).Trim()
-                    : "";
-
-                if (string.Equals(remoteTag, localTag, StringComparison.Ordinal))
-                {
-                    _logger.LogInformation(
-                        "TheSportsDB: DB is up to date (version: {V}).", remoteTag);
-                    return;
-                }
 
                 // Find the DB asset
-                string? downloadUrl = null;
+                GithubAsset? asset = null;
                 if (release.Assets != null)
                 {
-                    foreach (var asset in release.Assets)
+                    foreach (var a in release.Assets)
                     {
-                        if (string.Equals(asset.Name, "sports_resolver.db",
+                        if (string.Equals(a.Name, "sports_resolver.db",
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            downloadUrl = asset.BrowserDownloadUrl;
+                            asset = a;
                             break;
                         }
                     }
                 }
 
-                if (string.IsNullOrEmpty(downloadUrl))
+                if (asset == null || string.IsNullOrEmpty(asset.BrowserDownloadUrl))
                 {
                     _logger.LogWarning(
                         "TheSportsDB: DB update check found tag {T} but no sports_resolver.db asset.",
@@ -99,10 +88,24 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                     return;
                 }
 
-                _logger.LogInformation(
-                    "TheSportsDB: Downloading DB update: {T}", remoteTag);
+                // Use asset updated_at timestamp as the version key (not tag name)
+                if (asset.UpdatedAt == null)
+                    _logger.LogWarning("TheSportsDB: Asset has no updated_at timestamp; falling back to tag name for version check.");
+                string remoteTimestamp = asset.UpdatedAt ?? remoteTag;
+                string versionFile = Path.Combine(_appPaths.DataPath, "sports_resolver_version.txt");
+                string localTimestamp = File.Exists(versionFile)
+                    ? File.ReadAllText(versionFile).Trim()
+                    : "";
 
-                var bytes = await client.GetByteArrayAsync(downloadUrl, cancellationToken)
+                if (string.Equals(remoteTimestamp, localTimestamp, StringComparison.Ordinal))
+                {
+                    _logger.LogInformation("TheSportsDB: DB is up to date (timestamp: {V}).", remoteTimestamp);
+                    return;
+                }
+
+                _logger.LogInformation("TheSportsDB: Downloading DB update (timestamp: {T})", remoteTimestamp);
+
+                var bytes = await client.GetByteArrayAsync(asset.BrowserDownloadUrl, cancellationToken)
                     .ConfigureAwait(false);
 
                 string destPath = Path.Combine(_appPaths.DataPath, "sports_resolver.db");
@@ -110,11 +113,10 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 await File.WriteAllBytesAsync(tempPath, bytes, cancellationToken)
                     .ConfigureAwait(false);
                 File.Move(tempPath, destPath, overwrite: true);
-                await File.WriteAllTextAsync(versionFile, remoteTag, cancellationToken)
+                await File.WriteAllTextAsync(versionFile, remoteTimestamp, cancellationToken)
                     .ConfigureAwait(false);
 
-                _logger.LogInformation(
-                    "TheSportsDB: DB updated successfully to {T}.", remoteTag);
+                _logger.LogInformation("TheSportsDB: DB updated successfully (timestamp: {T}).", remoteTimestamp);
             }
             catch (Exception ex)
             {
@@ -139,6 +141,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
 
             [JsonPropertyName("browser_download_url")]
             public string? BrowserDownloadUrl { get; set; }
+
+            [JsonPropertyName("updated_at")]
+            public string? UpdatedAt { get; set; }
         }
     }
 }
