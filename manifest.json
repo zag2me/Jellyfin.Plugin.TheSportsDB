@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
       {
+        "version": "2.0.1.0",
+        "changelog": "Fix noisy tokens in filenames for v2.0.1.0 v2.0.1.0: Fix CleanFilename noise stripping, fuzzy team matching, date offset handling, and DB auto-update timestamp",
+        "targetAbi": "10.0.0.0",
+        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v2.0.1.0/Jellyfin.Plugin.TheSportsDB.zip",
+        "checksum": "5968c5087eb6f23bac66da16ce9f3c78",
+        "timestamp": "2026-03-02T14:17:00Z"
+      },
+      {
         "version": "2.0.0.0",
         "changelog": "Add self-updating DB mechanism: sports_resolver.db auto-downloads from GitHub Release tagged db-latest on startup",
         "targetAbi": "10.0.0.0",
