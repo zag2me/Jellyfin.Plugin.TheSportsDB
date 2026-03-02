@@ -10,6 +10,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Configuration
         // Remove custom getter/setter. Use auto-property only!
         public List<LeagueMapping> LeagueMappings { get; set; } = new();
 
+        /// <summary>Auto-download DB updates from GitHub Releases on startup.</summary>
+        public bool EnableDbAutoUpdate { get; set; } = true;
+
         public PluginConfiguration() { }
     }
 

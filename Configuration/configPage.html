@@ -58,6 +58,14 @@
                     </div>
                 </div>
 
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="EnableDbAutoUpdate" name="EnableDbAutoUpdate" type="checkbox" is="emby-checkbox" />
+                        <span>Auto-update team/league database on startup</span>
+                    </label>
+                    <div class="fieldDescription">Downloads the latest sports_resolver.db from GitHub on startup. Requires internet access.</div>
+                </div>
+
                 <div>
                     <button is="emby-button" type="submit" class="raised button-submit block">
                         <span>Save</span>
@@ -75,6 +83,8 @@
                 ApiClient.getPluginConfiguration(TheSportsDBConfigurationPage.pluginId).then(function (config) {
                     var apiKey = config.ApiKey || "123";
                     page.querySelector('#TheSportsDBApiKey').value = apiKey;
+
+                    page.querySelector('#EnableDbAutoUpdate').checked = config.EnableDbAutoUpdate !== false;
 
                     var mappings = config.LeagueMappings || [];
                     var container = page.querySelector('#leagueMappingList');
@@ -154,6 +164,7 @@
                 ApiClient.getPluginConfiguration(TheSportsDBConfigurationPage.pluginId).then(function (config) {
                     config.ApiKey = apiKey;
                     config.LeagueMappings = newMappings;
+                    config.EnableDbAutoUpdate = page.querySelector('#EnableDbAutoUpdate').checked;
 
                     ApiClient.updatePluginConfiguration(TheSportsDBConfigurationPage.pluginId, config).then(function (result) {
                         Dashboard.processPluginConfigurationUpdateResult(result);
