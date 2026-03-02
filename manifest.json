@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
       {
+        "version": "2.0.0.0",
+        "changelog": "Add self-updating DB mechanism: sports_resolver.db auto-downloads from GitHub Release tagged db-latest on startup",
+        "targetAbi": "10.0.0.0",
+        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v2.0.0.0/Jellyfin.Plugin.TheSportsDB.zip",
+        "checksum": "00000000000000000000000000000000",
+        "timestamp": "2026-03-02T12:00:00Z"
+      },
+      {
         "version": "1.0.39.0",
         "changelog": "Bump v1.0.39.0",
         "targetAbi": "10.0.0.0",
