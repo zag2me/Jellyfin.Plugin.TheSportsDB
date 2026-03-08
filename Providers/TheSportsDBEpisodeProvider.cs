@@ -36,11 +36,17 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             "La Liga", "Spanish",
             "NHL", "EPL", "NFL", "NBA", "MLB", "UFC", "ICC",
         };
+
+        // These are stripped from CleanFilename() for search purposes,
+        // but detected BEFORE cleaning so we can append them to the title after matching.
+        // Order matters: longest/most-specific first to avoid partial matches
+        // e.g. "Early Prelims" must come before "Prelims"
         private static readonly string[] SuffixStrips = new[]
         {
             "Early Prelims", "Early Card", "Main Card", "Main Event", "Prelims", "Fight-BB",
             "Kickoff", "Pre Show", "Post Show", "Weigh-in", "Face Off"
         };
+
         private static readonly string[] NoiseTags = new[]
         {
             "Fubo", "Peacock", "Sky", "TNT", "Amazon", "BBC", "ITV",
@@ -144,6 +150,21 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 : System.IO.Path.GetFileNameWithoutExtension(info.Path);
             _logger.LogInformation("TheSportsDB: Raw filename: \"{Raw}\"", rawFilename);
 
+            // STEP 4b: detect suffix BEFORE CleanFilename() strips it
+            // e.g. "UFC 313 Early Prelims" → detectedSuffix = "Early Prelims"
+            // Order matters: "Early Prelims" must be checked before "Prelims"
+            string? detectedSuffix = null;
+            foreach (var sfx in SuffixStrips)
+            {
+                if (rawFilename.IndexOf(sfx, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    detectedSuffix = sfx;
+                    break;
+                }
+            }
+            if (detectedSuffix != null)
+                _logger.LogInformation("TheSportsDB: Detected suffix: \"{Sfx}\"", detectedSuffix);
+
             // STEP 5: extract date
             DateTime? fileDate = ExtractDate(rawFilename);
             _logger.LogInformation("TheSportsDB: Date: \"{D}\"", fileDate?.ToString("yyyy-MM-dd") ?? "none");
@@ -168,13 +189,15 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var full = lr?.events?.FirstOrDefault() ?? lr?.@event?.FirstOrDefault() ?? matched;
 
             // STEP 8: build metadata
+            // Use the suffix detected from the raw filename (before cleaning).
+            // Only append if the API title doesn't already contain it.
             result.HasMetadata = true;
             string title = full.strEvent ?? rawFilename;
-            foreach (var sfx in new[] { "Early Prelims", "Prelims", "Main Card", "Weigh-in", "Post Show", "Pre Show", "Kickoff", "Press Conference" })
+            if (detectedSuffix != null
+                && title.IndexOf(detectedSuffix, StringComparison.OrdinalIgnoreCase) < 0)
             {
-                if (rawFilename.IndexOf(sfx, StringComparison.OrdinalIgnoreCase) >= 0
-                    && title.IndexOf(sfx, StringComparison.OrdinalIgnoreCase) < 0)
-                { title += $" ({sfx})"; break; }
+                title += $" ({detectedSuffix})";
+                _logger.LogInformation("TheSportsDB: Appended suffix to title: \"{T}\"", title);
             }
 
             result.Item = new Episode
@@ -327,7 +350,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             name = Regex.Replace(name, @"\bPart\s?\d+\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bUFC\s\d{3}\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bUFC\sFight\sNight\b", "", RegexOptions.IgnoreCase);
-            // Strip "Match N" or "Round N" prefix patterns (e.g. "Match 52", "Round 24")
             name = Regex.Replace(name, @"\bMatch\s\d+\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bRound\s\d+\b", "", RegexOptions.IgnoreCase);
             foreach (var t in NoiseTags)
@@ -342,7 +364,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var mE = Regex.Match(name, @"(\d{2})[\.\-_](\d{2})[\.\-_](\d{4})");
             if (mE.Success) name = name.Replace(mE.Value, "").Trim();
             name = Regex.Replace(name, @"\b(19|20)\d{2}\b", "", RegexOptions.IgnoreCase);
-            // Strip any isolated leading number that appears before "vs" (e.g. "268 Moreno vs Kavanagh" → "Moreno vs Kavanagh")
             name = Regex.Replace(name, @"^\d+\s+(?=\S)", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
             return name.Trim('-', ' ', '~', '_');
