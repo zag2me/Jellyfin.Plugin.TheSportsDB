@@ -37,14 +37,13 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             "NHL", "EPL", "NFL", "NBA", "MLB", "UFC", "ICC",
         };
 
-        // These are stripped from CleanFilename() for search purposes,
-        // but detected BEFORE cleaning so we can append them to the title after matching.
-        // Order matters: longest/most-specific first to avoid partial matches
-        // e.g. "Early Prelims" must come before "Prelims"
+        // Detected BEFORE CleanFilename() strips them so we can append to title after matching.
+        // Order matters: longest/most-specific first — "Early Prelims" before "Prelims", "Main Card" before "Main"
         private static readonly string[] SuffixStrips = new[]
         {
             "Early Prelims", "Early Card", "Main Card", "Main Event", "Prelims", "Fight-BB",
-            "Kickoff", "Pre Show", "Post Show", "Weigh-in", "Face Off"
+            "Kickoff", "Pre Show", "Post Show", "Weigh-in", "Face Off",
+            "Main", "Prelim"   // shorthand — must be AFTER the longer versions above
         };
 
         private static readonly string[] NoiseTags = new[]
@@ -151,8 +150,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             _logger.LogInformation("TheSportsDB: Raw filename: \"{Raw}\"", rawFilename);
 
             // STEP 4b: detect suffix BEFORE CleanFilename() strips it
-            // e.g. "UFC 313 Early Prelims" → detectedSuffix = "Early Prelims"
-            // Order matters: "Early Prelims" must be checked before "Prelims"
+            // Order matters: "Early Prelims" before "Prelims", "Main Card" before "Main"
             string? detectedSuffix = null;
             foreach (var sfx in SuffixStrips)
             {
@@ -226,16 +224,18 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             string cleanName = CleanFilename(rawFilename);
             _logger.LogInformation("TheSportsDB: Clean: \"{C}\"", cleanName);
 
+            // Extract fighter/team names from "vs" in cleaned name
             string? teamA = null, teamB = null;
             bool hyphen = false;
 
             var vsIdx = cleanName.IndexOf(" vs ", StringComparison.OrdinalIgnoreCase);
             if (vsIdx > 0)
             {
-                var rA = cleanName.Substring(0, vsIdx).Trim();
-                var rB = cleanName.Substring(vsIdx + 4).Trim();
-                teamA = _sportsResolverDb.GetTeamFullName(rA, leagueId) ?? rA;
-                teamB = _sportsResolverDb.GetTeamFullName(rB, leagueId) ?? rB;
+                teamA = cleanName.Substring(0, vsIdx).Trim();
+                teamB = cleanName.Substring(vsIdx + 4).Trim();
+                // Try DB team lookup — fall back to raw string (covers UFC fighters too)
+                teamA = _sportsResolverDb.GetTeamFullName(teamA, leagueId) ?? teamA;
+                teamB = _sportsResolverDb.GetTeamFullName(teamB, leagueId) ?? teamB;
                 _logger.LogInformation("TheSportsDB: Teams (vs): \"{A}\" vs \"{B}\"", teamA, teamB);
             }
             else
@@ -263,7 +263,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 var evList = dr?.events ?? dr?.@event;
                 if (evList == null || evList.Count == 0) continue;
 
-                // P1: strFilename
+                // P1: strFilename exact match
                 foreach (var ev in evList)
                 {
                     if (!string.IsNullOrEmpty(ev.strFilename)
@@ -274,7 +274,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                     }
                 }
 
-                // P2/P3: team + date
+                // P2/P3: home/away team match (team sports — soccer, hockey, etc.)
                 if (!string.IsNullOrEmpty(teamA) && !string.IsNullOrEmpty(teamB))
                 {
                     static bool TeamMatch(string evTeam, string fileTeam) =>
@@ -291,6 +291,24 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                         if (tm)
                         {
                             _logger.LogInformation("TheSportsDB: P{P} (teams): {H} vs {A}", hyphen ? "3" : "2", ev.strHomeTeam, ev.strAwayTeam);
+                            return ev;
+                        }
+                    }
+
+                    // P4: fighter name match in strEvent (UFC/MMA — no strHomeTeam/strAwayTeam)
+                    // Cleans the API event name and checks both fighter names appear in it
+                    foreach (var ev in evList)
+                    {
+                        if (string.IsNullOrEmpty(ev.strEvent)) continue;
+                        // Clean the API event name the same way so comparison is fair
+                        string evClean = CleanFilename(ev.strEvent);
+                        // Also strip trailing rematch digit from API name e.g. "Holloway vs Oliveira 2" → "Holloway vs Oliveira"
+                        evClean = Regex.Replace(evClean, @"\s+\d+\s*$", "", RegexOptions.IgnoreCase).Trim();
+                        bool aInEv = evClean.IndexOf(teamA, StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool bInEv = evClean.IndexOf(teamB, StringComparison.OrdinalIgnoreCase) >= 0;
+                        if (aInEv && bInEv)
+                        {
+                            _logger.LogInformation("TheSportsDB: P4 (fighter names): \"{A}\" + \"{B}\" in \"{E}\"", teamA, teamB, ev.strEvent);
                             return ev;
                         }
                     }
@@ -342,29 +360,34 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         {
             string name = raw.Replace('.', ' ');
             name = Regex.Replace(name, @"\bUtd\b", "United", RegexOptions.IgnoreCase);
-            name = Regex.Replace(name, @"\b(RS|PS)\b", "", RegexOptions.IgnoreCase);
+            // Resolution/quality tags
             name = Regex.Replace(name, @"(\d{2})(\d{3,4}p)", "$1 $2");
             name = Regex.Replace(name, @"\b\d{3,4}p(?:[a-zA-Z0-9]+)?\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\b\d{2,3}fps\b", "", RegexOptions.IgnoreCase);
-            name = Regex.Replace(name, @"\b\d{1,2}_\d{2}\b", "", RegexOptions.IgnoreCase);
-            name = Regex.Replace(name, @"\bPart\s?\d+\b", "", RegexOptions.IgnoreCase);
+            // UFC event name strips (noise for team/fighter extraction)
             name = Regex.Replace(name, @"\bUFC\s\d{3}\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\bUFC\sFight\sNight\b", "", RegexOptions.IgnoreCase);
-            name = Regex.Replace(name, @"\bMatch\s\d+\b", "", RegexOptions.IgnoreCase);
-            name = Regex.Replace(name, @"\bRound\s\d+\b", "", RegexOptions.IgnoreCase);
+            // Noise tags (broadcaster names, codec tags etc.)
             foreach (var t in NoiseTags)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(t) + @"\b", "", RegexOptions.IgnoreCase);
+            // Suffix strips (Prelims, Main Card etc.)
             foreach (var s in SuffixStrips)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(s) + @"\b", "", RegexOptions.IgnoreCase);
+            // League name strips
             foreach (var s in LeagueNameStrips)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(s) + @"\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
+            // Strip date patterns
             var mI = Regex.Match(name, @"(\d{4})[\.\-_](\d{2})[\.\-_](\d{2})");
             if (mI.Success) name = name.Replace(mI.Value, "").Trim();
             var mE = Regex.Match(name, @"(\d{2})[\.\-_](\d{2})[\.\-_](\d{4})");
             if (mE.Success) name = name.Replace(mE.Value, "").Trim();
             name = Regex.Replace(name, @"\b(19|20)\d{2}\b", "", RegexOptions.IgnoreCase);
+            // Strip isolated leading number before content e.g. "268 Moreno vs..." → "Moreno vs..."
             name = Regex.Replace(name, @"^\d+\s+(?=\S)", "", RegexOptions.IgnoreCase);
+            // Strip trailing rematch/sequence numbers e.g. "Oliveira 2 03" → "Oliveira"
+            // Handles: " 2 03", " 2", " 03" at end of string after fighter name
+            name = Regex.Replace(name, @"(\s+\d+)+\s*$", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
             return name.Trim('-', ' ', '~', '_');
         }
