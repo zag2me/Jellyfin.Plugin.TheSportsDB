@@ -100,6 +100,7 @@ The plugin includes built-in support for popular leagues (see [Known Leagues](#-
 | `Full Event Name`           | `UFC 315 Jones vs Aspinall.mkv`                             | ⭐⭐⭐⭐       |
 | `YYYY Team1 vs Team2 DD MM` | `2026 Liverpool vs Manchester City 08 02.mkv`               | ⭐⭐⭐        |
 | `League YYYY Team1 vs Team2 ...` | `EPL 2026 Liverpool vs Manchester City 08 02 720p.mkv` | ⭐⭐         |
+| `YYYY-MM-DD Event Name`    | `2026-03-08 Australian Grand Prix.mkv`                       | ⭐⭐⭐⭐⭐      |
 
 ### Key Naming Rules
 
@@ -134,6 +135,10 @@ Use POSIX-style forward slashes for cross-platform compatibility.
 │   └── 2025-2026/
 │       ├── 2026-02-01 Kansas City Chiefs vs Philadelphia Eagles.mkv
 │       └── 2026-01-20 Buffalo Bills vs Baltimore Ravens.mkv
+├── Formula 1/
+│   └── 2026/
+│       ├── 2026-03-08 Australian Grand Prix.mkv
+│       └── 2026-03-15 Chinese Grand Prix.mkv
 └── UFC/
     └── 2026/
         └── 2026-03-15 UFC 315 Jones vs Aspinall.mkv
@@ -151,10 +156,11 @@ The plugin uses a sophisticated matching pipeline to find the correct metadata f
    - Built-in internal league map (NHL, EPL, NFL, NBA, MLB, UFC)
    - Local `sports_resolver.db` database
    - TheSportsDB API search (last resort)
-3. **Clean the Filename**: Removes dates, league prefixes, and scene tags from the filename
+3. **Clean the Filename**: Removes dates, and scene tags from the filename
 4. **Expand Team Abbreviations**: Converts common abbreviations to full team names (e.g., MTL → Montreal Canadiens)
 5. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID/slug, and date if available
-6. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±1 day tolerance (helps with timezone slippage)
+6. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±2 day tolerance (helps with timezone slippage)
+7. **Flexible Filename Matching**: Filenames with or without the league prefix are supported (e.g., `2026-03-08 Australian Grand Prix.mkv` works just as well as `Formula 1 2026-03-08 Australian Grand Prix.mkv`).
 
 ---
 
@@ -189,6 +195,7 @@ The following leagues have built-in support and don't require manual mapping:
 **"Season Unknown"**
 - Ensure your season folder contains the year (e.g., `2025-2026`)
 - Check that the parent folder matches a known league or has a mapping configured
+- **Do not prefix with "Season"** — use `2026` or `2025-2026`, not `Season 2026`. TheSportsDB stores seasons as bare years only.
 
 **"Logs stop after saving configuration"**
 - Normal: Jellyfin always restarts after plugin config is saved
