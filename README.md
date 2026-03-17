@@ -95,6 +95,7 @@ The plugin includes built-in support for popular leagues (see [Known Leagues](#-
 | Format                   | Example                                                     | Match Rate |
 |--------------------------|-------------------------------------------------------------|------------|
 | `YYYY-MM-DD Team1 vs Team2` | `2026-02-08 Liverpool vs Manchester City.mkv`               | ⭐⭐⭐⭐⭐      |
+| `YYYY-MM-DD_Away@Home`      | `2026-03-16_BOS@NJD.mkv`                                    | ⭐⭐⭐⭐⭐      |
 | `YYYY-MM-DD-ABBR-ABBR`      | `2026-02-05-NJD-NYI.mkv`                                    | ⭐⭐         |
 | `Team1 vs Team2`            | `Liverpool vs Manchester City.mkv`                          | ⭐⭐⭐⭐       |
 | `Full Event Name`           | `UFC 315 Jones vs Aspinall.mkv`                             | ⭐⭐⭐⭐       |
@@ -102,15 +103,38 @@ The plugin includes built-in support for popular leagues (see [Known Leagues](#-
 | `League YYYY Team1 vs Team2 ...` | `EPL 2026 Liverpool vs Manchester City 08 02 720p.mkv` | ⭐⭐         |
 | `YYYY-MM-DD Event Name`    | `2026-03-08 Australian Grand Prix.mkv`                       | ⭐⭐⭐⭐⭐      |
 
+### Team Separator Formats
+
+The plugin supports two formats for team sports:
+
+| Format | Convention | Example |
+|--------|------------|---------|
+| `Home vs Away` | Home team first | `2026-03-16 New Jersey Devils vs Boston Bruins.mkv` |
+| `Away@Home` | Away team first (away **@** home) | `2026-03-16_BOS@NJD.mkv` |
+
+> **`@` means away @ home** — this matches how TheSportsDB stores alternate event names (e.g. `strEventAlternate: "Boston Bruins @ New Jersey Devils"`). This convention is universal across all sports on TheSportsDB, not just NHL.
+
+So for the same game, both of these are valid:
+```
+NHL-2026-03-16_NJD vs BOS.mkv          ← home vs away (vs format)
+NHL-2026-03-16_BOS@NJD.mkv             ← away @ home (@ format)
+```
+
+And for Premier League:
+```
+EPL-2026-03-16_Brentford vs Wolverhampton Wanderers.mkv
+EPL-2026-03-16_WOL@BRE.mkv
+```
+
 ### Key Naming Rules
 
 - **✅ Always use ISO dates (`YYYY-MM-DD`)** if possible
 - **✅ Use full team names** where possible (less ambiguous)
-- **✅ Use `vs` as the separator** between team names
+- **✅ Use `vs` or `@` as the separator** between team names (`vs` = home first, `@` = away first)
 - **✅ Make sure the folder name is mapped** in plugin settings ("League Mappings")
-- **✅ Avoid scene tags/noise in filenames** when possible (e.g., `720p`, `Fubo`, `x264`—the plugin will attempt to strip these, but cleaner is better)
+- **✅ Keep filenames clean** — avoid broadcaster/network tags (e.g. `_ESPN`, `_MSG`, `_FDSNDET`). The plugin strips common ones but cleaner is always better
 - **✅ Use season/year subfolders for organization**
-- **✅ 3-letter team abbreviations are best for NHL**
+- **✅ 3-letter team abbreviations are supported for NHL and other North American leagues**
 - **✅ Soccer/football: Use full club names**
 
 ### Recommended Folder Structure (Universal Format)
@@ -125,8 +149,9 @@ Use POSIX-style forward slashes for cross-platform compatibility.
 │       └── 2026-01-15 Arsenal vs Chelsea.mkv
 ├── NHL/
 │   └── 2025-2026/
+│       ├── 2026-03-16_BOS@NJD.mkv
 │       ├── 2026-02-05-NJD-NYI.mkv
-│       └── 2026-01-22-EDM-PIT.mkv
+│       └── 2026-01-22 Edmonton Oilers vs Pittsburgh Penguins.mkv
 ├── NBA/
 │   └── 2025-2026/
 │       ├── 2026-02-10 Los Angeles Lakers vs Boston Celtics.mkv
@@ -156,11 +181,12 @@ The plugin uses a sophisticated matching pipeline to find the correct metadata f
    - Built-in internal league map (NHL, EPL, NFL, NBA, MLB, UFC)
    - Local `sports_resolver.db` database
    - TheSportsDB API search (last resort)
-3. **Clean the Filename**: Removes dates, and scene tags from the filename
-4. **Expand Team Abbreviations**: Converts common abbreviations to full team names (e.g., MTL → Montreal Canadiens)
-5. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID/slug, and date if available
-6. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±2 day tolerance (helps with timezone slippage)
-7. **Flexible Filename Matching**: Filenames with or without the league prefix are supported (e.g., `2026-03-08 Australian Grand Prix.mkv` works just as well as `Formula 1 2026-03-08 Australian Grand Prix.mkv`).
+3. **Clean the Filename**: Removes dates, broadcaster tags, and scene tags from the filename
+4. **Expand Team Abbreviations**: Converts common abbreviations to full team names (e.g., `BOS` → Boston Bruins, `NJD` → New Jersey Devils)
+5. **Parse Team Separator**: Detects `vs` (home vs away) or `@` (away @ home) and resolves both team names
+6. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID/slug, and date if available
+7. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±2 day tolerance (helps with timezone slippage)
+8. **Flexible Filename Matching**: Filenames with or without the league prefix are supported (e.g., `2026-03-08 Australian Grand Prix.mkv` works just as well as `Formula 1 2026-03-08 Australian Grand Prix.mkv`).
 
 ---
 
@@ -209,6 +235,12 @@ The following leagues have built-in support and don't require manual mapping:
 **Plugin doesn't recognize my league folder (e.g., "Bundesliga", "La Liga")**
 - Add a League Mapping in the plugin configuration before your first scan
 - Find the League ID on TheSportsDB.com (`https://www.thesportsdb.com/league/4331` → ID is `4331`)
+
+**NFO files not being written on Linux**
+- The Jellyfin service user (typically `jellyfin`) must have write permission to your media folders
+- Check with: `ls -la /path/to/your/media/`
+- If permission is denied, the NFO write is skipped silently and a warning is logged — metadata is still returned normally
+- **Note:** If Jellyfin's built-in NFO metadata saver is also enabled (Dashboard > Libraries > Manage Library > Metadata Savers > Nfo), it may overwrite the plugin-generated NFO on library refresh
 
 ---
 

@@ -108,11 +108,16 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 var bytes = await client.GetByteArrayAsync(asset.BrowserDownloadUrl, cancellationToken)
                     .ConfigureAwait(false);
 
-                string destPath = Path.Combine(_appPaths.DataPath, "sports_resolver.db");
+                // Save to plugin folder so SportsResolverDb loads the updated file
+                string pluginDir = Path.GetDirectoryName(typeof(DbUpdateService).Assembly.Location) ?? _appPaths.DataPath;
+                string destPath = Path.Combine(pluginDir, "sports_resolver.db");
                 string tempPath = destPath + ".tmp";
+
                 await File.WriteAllBytesAsync(tempPath, bytes, cancellationToken)
                     .ConfigureAwait(false);
                 File.Move(tempPath, destPath, overwrite: true);
+
+                // Save version timestamp to DataPath so it persists across plugin updates
                 await File.WriteAllTextAsync(versionFile, remoteTimestamp, cancellationToken)
                     .ConfigureAwait(false);
 
