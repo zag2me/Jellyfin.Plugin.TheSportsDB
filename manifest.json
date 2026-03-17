@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/retrorat1/Jellyfin.Plugin.TheSportsDB/main/thumb.png",
     "versions": [
       {
+        "version": "2.0.4.0",
+        "changelog": "NoiseTags,CleanFilename and added @ separator detection",
+        "targetAbi": "10.0.0.0",
+        "sourceUrl": "https://github.com/retrorat1/Jellyfin.Plugin.TheSportsDB/releases/download/v2.0.4.0/Jellyfin.Plugin.TheSportsDB.zip",
+        "checksum": "a2d5b9c318ab444b9c5ae01238689b6f",
+        "timestamp": "2026-03-17T12:02:00Z"
+      },
+      {
         "version": "2.0.3.0",
         "changelog": "Season folder stripping, ParentIndexNumber from strSeason, NFO file writing",
         "targetAbi": "10.0.0.0",

@@ -50,6 +50,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private static readonly string[] NoiseTags = new[]
         {
             "Fubo", "Peacock", "Sky", "TNT", "Amazon", "BBC", "ITV",
+            "ESPN", "TSN", "SN", "NBCS", "CBC", "RDS",
             "HDTV", "WEB-DL", "WEBRip", "X264", "H264", "X265", "H265", "HEVC", "AAC", "MKV", "MP4",
             "Full Match Replay", "Full Match", "Match Replay",
             "SkySportsOne", "SkySports", "SkySport",
@@ -227,6 +228,8 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             bool hyphen = false;
 
             var vsIdx = cleanName.IndexOf(" vs ", StringComparison.OrdinalIgnoreCase);
+            var atIdx = cleanName.IndexOf("@", StringComparison.OrdinalIgnoreCase);
+
             if (vsIdx > 0)
             {
                 teamA = cleanName.Substring(0, vsIdx).Trim();
@@ -234,6 +237,15 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 teamA = _sportsResolverDb.GetTeamFullName(teamA, leagueId) ?? teamA;
                 teamB = _sportsResolverDb.GetTeamFullName(teamB, leagueId) ?? teamB;
                 _logger.LogInformation("TheSportsDB: Teams (vs): \"{A}\" vs \"{B}\"", teamA, teamB);
+            }
+            else if (atIdx > 0)
+            {
+                // @ format = away @ home
+                string awayAbbr = cleanName.Substring(0, atIdx).Trim();
+                string homeAbbr = cleanName.Substring(atIdx + 1).Trim();
+                teamA = _sportsResolverDb.GetTeamFullName(awayAbbr, leagueId) ?? awayAbbr;
+                teamB = _sportsResolverDb.GetTeamFullName(homeAbbr, leagueId) ?? homeAbbr;
+                _logger.LogInformation("TheSportsDB: Teams (@): \"{A}\" @ \"{B}\"", teamA, teamB);
             }
             else
             {
@@ -397,6 +409,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private static string CleanFilename(string raw)
         {
             string name = raw.Replace('.', ' ');
+            name = name.Replace('_', ' ');  // treat underscores as spaces so _ESPN, _SN etc get stripped
             name = Regex.Replace(name, @"\bUtd\b", "United", RegexOptions.IgnoreCase);
             // Resolution/quality tags
             name = Regex.Replace(name, @"(\d{2})(\d{3,4}p)", "$1 $2");
