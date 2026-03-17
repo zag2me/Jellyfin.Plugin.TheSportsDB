@@ -52,9 +52,9 @@ This plugin integrates TheSportsDB's extensive sports database with Jellyfin, pr
 
 | Folder Name        | League ID | Example Path                                   |
 |--------------------|-----------|------------------------------------------------|
-| EPL                | 4328      | `/media/Sports/EPL/Season 2025-26/2026-02-08 Liverpool vs Manchester City.mkv`     |
+| EPL                | 4328      | `/media/Sports/EPL/2025-2026/2026-02-08 Liverpool vs Manchester City.mkv`     |
 | ICC T20 WC         | 5103      | `/media/Sports/ICC T20 WC/2026/ICC Mens T20 World Cup 2026-02-15 India Cricket vs Pakistan Cricket.mkv` |
-| NFL                | 4391      | `/media/Sports/NFL/Season 2025/2026-01-15 Buffalo Bills vs Baltimore Ravens.mkv`   |
+| NFL                | 4391      | `/media/Sports/NFL/2025/2026-01-15 Buffalo Bills vs Baltimore Ravens.mkv`   |
 
 > **Note:** If you rename a folder (e.g., `ICC T20 WC` → `ICC T20 Mens WC`), you must create a matching mapping in the plugin for the new folder name and rescan the library.
 
@@ -119,23 +119,23 @@ Use POSIX-style forward slashes for cross-platform compatibility.
 ```plaintext
 /media/Sports/
 ├── EPL/
-│   └── Season 2025-26/
+│   └── 2025-2026/
 │       ├── 2026-02-08 Liverpool vs Manchester City.mkv
 │       └── 2026-01-15 Arsenal vs Chelsea.mkv
 ├── NHL/
-│   └── Season 2025-2026/
+│   └── 2025-2026/
 │       ├── 2026-02-05-NJD-NYI.mkv
 │       └── 2026-01-22-EDM-PIT.mkv
 ├── NBA/
-│   └── Season 2025-2026/
+│   └── 2025-2026/
 │       ├── 2026-02-10 Los Angeles Lakers vs Boston Celtics.mkv
 │       └── 2026-01-28 Golden State Warriors vs Miami Heat.mkv
 ├── NFL/
-│   └── Season 2025-2026/
+│   └── 2025-2026/
 │       ├── 2026-02-01 Kansas City Chiefs vs Philadelphia Eagles.mkv
 │       └── 2026-01-20 Buffalo Bills vs Baltimore Ravens.mkv
 └── UFC/
-    └── Season 2026/
+    └── 2026/
         └── 2026-03-15 UFC 315 Jones vs Aspinall.mkv
 ```
 
@@ -187,7 +187,7 @@ The following leagues have built-in support and don't require manual mapping:
 - Try using full team names instead of abbreviations
 
 **"Season Unknown"**
-- Ensure your season folder contains the year (e.g., `Season 2025-26`)
+- Ensure your season folder contains the year (e.g., `2025-2026`)
 - Check that the parent folder matches a known league or has a mapping configured
 
 **"Logs stop after saving configuration"**
