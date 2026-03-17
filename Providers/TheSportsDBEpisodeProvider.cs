@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly SportsResolverDb _sportsResolverDb;
 
-        // For CleanFilename() only — never used to gate lookups
+        // For CleanFilename() only - never used to gate lookups
         // Order matters: longest/most-specific first
         private static readonly string[] LeagueNameStrips = new[]
         {
@@ -32,18 +32,19 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             "Spanish La Liga",
             "ICC Mens T20 World Cup", "ICC Womens T20 World Cup", "ICC Cricket World Cup",
             "Cricket World Cup",
+            "Formula 1", "Formula1",
             "La Liga", "Spanish",
             "Boxing",
             "NHL", "EPL", "NFL", "NBA", "MLB", "UFC", "ICC",
         };
 
         // Detected BEFORE CleanFilename() strips them so we can append to title after matching.
-        // Order matters: longest/most-specific first — "Early Prelims" before "Prelims", "Main Card" before "Main"
+        // Order matters: longest/most-specific first - "Early Prelims" before "Prelims", "Main Card" before "Main"
         private static readonly string[] SuffixStrips = new[]
         {
             "Early Prelims", "Early Card", "Main Card", "Main Event", "Prelims", "Fight-BB",
             "Kickoff", "Pre Show", "Post Show", "Weigh-in", "Face Off",
-            "Main", "Prelim"   // shorthand — must be AFTER the longer versions above
+            "Main", "Prelim"   // shorthand - must be AFTER the longer versions above
         };
 
         private static readonly string[] NoiseTags = new[]
@@ -53,7 +54,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             "Full Match Replay", "Full Match", "Match Replay",
             "SkySportsOne", "SkySports", "SkySport",
             "MWR", "F1TV", "DDP51", "DDP5",
-            "HQ"   // "English" removed — it strips from "English Premier League"
+            "HQ"   // "English" removed - it strips from "English Premier League"
         };
 
         public string Name => "TheSportsDB";
@@ -109,7 +110,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 return result;
             }
 
-            // STEP 2: resolve leagueId — config first, DB alias second
+            // STEP 2: resolve leagueId - config first, DB alias second
             string? leagueId = null;
             var config = Plugin.Instance?.Configuration;
 
@@ -120,7 +121,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 if (mapping != null)
                 {
                     leagueId = mapping.LeagueId;
-                    _logger.LogInformation("TheSportsDB: Config mapping: \"{S}\" → \"{Id}\"", seriesName, leagueId);
+                    _logger.LogInformation("TheSportsDB: Config mapping: \"{S}\" -> \"{Id}\"", seriesName, leagueId);
                 }
             }
 
@@ -128,7 +129,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             {
                 leagueId = _sportsResolverDb.GetLeagueIdFromAlias(seriesName);
                 if (!string.IsNullOrEmpty(leagueId))
-                    _logger.LogInformation("TheSportsDB: DB alias: \"{S}\" → \"{Id}\"", seriesName, leagueId);
+                    _logger.LogInformation("TheSportsDB: DB alias: \"{S}\" -> \"{Id}\"", seriesName, leagueId);
             }
 
             if (string.IsNullOrEmpty(leagueId))
@@ -174,7 +175,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             }
 
             // STEP 6: find event
-            Event? matched = await FindEventAsync(rawFilename, leagueId, leagueSlug, fileDate.Value, cancellationToken).ConfigureAwait(false);
+            Event? matched = await FindEventAsync(rawFilename, seriesName, leagueId, leagueSlug, fileDate.Value, cancellationToken).ConfigureAwait(false);
             if (matched == null)
             {
                 _logger.LogWarning("TheSportsDB: No match for \"{Raw}\".", rawFilename);
@@ -216,7 +217,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         }
 
         private async Task<Event?> FindEventAsync(
-            string rawFilename, string leagueId, string? leagueSlug,
+            string rawFilename, string seriesName, string leagueId, string? leagueSlug,
             DateTime fileDate, CancellationToken cancellationToken)
         {
             string cleanName = CleanFilename(rawFilename);
@@ -259,13 +260,34 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 var evList = dr?.events ?? dr?.@event;
                 if (evList == null || evList.Count == 0) continue;
 
-                // P1: strFilename exact match
                 foreach (var ev in evList)
                 {
-                    if (!string.IsNullOrEmpty(ev.strFilename)
-                        && string.Equals(ev.strFilename.Trim(), rawFilename.Trim(), StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(ev.strFilename)) continue;
+                    string evFilename = ev.strFilename.Trim();
+
+                    // P1: exact match
+                    if (string.Equals(evFilename, rawFilename.Trim(), StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogInformation("TheSportsDB: P1 (strFilename): \"{F}\"", ev.strFilename);
+                        _logger.LogInformation("TheSportsDB: P1 (strFilename exact): \"{F}\"", ev.strFilename);
+                        return ev;
+                    }
+
+                    // P1b: strFilename ends with rawFilename
+                    // e.g. rawFilename="2026-03-08 Australian Grand Prix"
+                    //      strFilename="Formula 1 2026-03-08 Australian Grand Prix"
+                    if (evFilename.EndsWith(rawFilename.Trim(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("TheSportsDB: P1b (strFilename suffix): \"{F}\"", ev.strFilename);
+                        return ev;
+                    }
+
+                    // P1c: prepend series name to rawFilename and match
+                    // e.g. seriesName="Formula 1" + rawFilename="2026-03-08 Australian Grand Prix"
+                    //      -> "Formula 1 2026-03-08 Australian Grand Prix"
+                    string rawWithSeries = $"{seriesName} {rawFilename}".Trim();
+                    if (string.Equals(evFilename, rawWithSeries, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("TheSportsDB: P1c (strFilename series+raw): \"{F}\"", ev.strFilename);
                         return ev;
                     }
                 }
@@ -291,7 +313,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                         }
                     }
 
-                    // P4: fighter name match in strEvent (UFC/MMA — no strHomeTeam/strAwayTeam)
+                    // P4: fighter name match in strEvent (UFC/MMA - no strHomeTeam/strAwayTeam)
                     foreach (var ev in evList)
                     {
                         if (string.IsNullOrEmpty(ev.strEvent)) continue;
@@ -306,9 +328,25 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                         }
                     }
                 }
+
+                // P5: cleanName contained in strEvent (non-team events: F1, MXGP, etc.)
+                // Handles cases where strFilename is not populated in TheSportsDB
+                if (!string.IsNullOrEmpty(cleanName) && cleanName.Length > 5)
+                {
+                    foreach (var ev in evList)
+                    {
+                        if (string.IsNullOrEmpty(ev.strEvent)) continue;
+                        if (ev.strEvent.IndexOf(cleanName, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            cleanName.IndexOf(ev.strEvent, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            _logger.LogInformation("TheSportsDB: P5 (strEvent contains): \"{E}\"", ev.strEvent);
+                            return ev;
+                        }
+                    }
+                }
             }
 
-            _logger.LogWarning("TheSportsDB: No match in ±2d for \"{Raw}\".", rawFilename);
+            _logger.LogWarning("TheSportsDB: No match in +-2d for \"{Raw}\".", rawFilename);
             return null;
         }
 
@@ -325,7 +363,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
 
         private static DateTime? ExtractDate(string raw)
         {
-            // YYYY-MM-DD (ISO — most reliable, try first)
+            // YYYY-MM-DD (ISO - most reliable, try first)
             var m1 = Regex.Match(raw, @"(\d{4})[\.\-_](\d{2})[\.\-_](\d{2})");
             if (m1.Success && int.TryParse(m1.Groups[1].Value, out int y1)
                 && int.TryParse(m1.Groups[2].Value, out int mo1)
@@ -341,19 +379,16 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
 
             // YYYY ... NN NN (space-separated, e.g. "EPL 2026 02 23" or "EPL 2026 23 02")
             // Only attempt if one value is unambiguously a day (> 12) to avoid MM/DD ambiguity.
-            // Ambiguous cases (both <= 12) are skipped — the cleanup script enforces YYYY-MM-DD.
+            // Ambiguous cases (both <= 12) are skipped - the cleanup script enforces YYYY-MM-DD.
             var m3 = Regex.Match(raw, @"\b(19|20)(\d{2})\b\D+\b(\d{2})\b\D+\b(\d{2})\b");
             if (m3.Success && int.TryParse(m3.Groups[1].Value + m3.Groups[2].Value, out int y3)
                 && int.TryParse(m3.Groups[3].Value, out int p1)
                 && int.TryParse(m3.Groups[4].Value, out int p2))
             {
                 if (p1 > 12)
-                    // p1 must be day (DD MM)
                     try { return new DateTime(y3, p2, p1); } catch { }
                 else if (p2 > 12)
-                    // p2 must be day (MM DD)
                     try { return new DateTime(y3, p1, p2); } catch { }
-                // Both <= 12 — ambiguous, skip. Use cleanup script to rename to YYYY-MM-DD.
             }
 
             return null;
@@ -376,9 +411,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             // Suffix strips (Prelims, Main Card etc.)
             foreach (var s in SuffixStrips)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(s) + @"\b", "", RegexOptions.IgnoreCase);
-            // Strip underscore-number remnants e.g. "Lopes 2_02" → "Lopes 2"
+            // Strip underscore-number remnants e.g. "Lopes 2_02" -> "Lopes 2"
             name = Regex.Replace(name, @"\s*_\d+\b", "", RegexOptions.IgnoreCase);
-            // League name strips — order matters, longest first
+            // League name strips - order matters, longest first
             foreach (var s in LeagueNameStrips)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(s) + @"\b", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
@@ -388,9 +423,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var mE = Regex.Match(name, @"(\d{2})[\.\-_](\d{2})[\.\-_](\d{4})");
             if (mE.Success) name = name.Replace(mE.Value, "").Trim();
             name = Regex.Replace(name, @"\b(19|20)\d{2}\b", "", RegexOptions.IgnoreCase);
-            // Strip isolated leading number e.g. "268 Moreno vs..." → "Moreno vs..."
+            // Strip isolated leading number e.g. "268 Moreno vs..." -> "Moreno vs..."
             name = Regex.Replace(name, @"^\d+\s+(?=\S)", "", RegexOptions.IgnoreCase);
-            // Strip trailing rematch/sequence numbers e.g. "Oliveira 2 03" → "Oliveira"
+            // Strip trailing rematch/sequence numbers e.g. "Oliveira 2 03" -> "Oliveira"
             name = Regex.Replace(name, @"(\s+\d+)+\s*$", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
             return name.Trim('-', ' ', '~', '_');
