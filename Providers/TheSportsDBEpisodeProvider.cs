@@ -55,7 +55,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             "Full Match Replay", "Full Match", "Match Replay",
             "SkySportsOne", "SkySports", "SkySport",
             "MWR", "F1TV", "DDP51", "DDP5",
-            "HQ"   // "English" removed - it strips from "English Premier League"
+            "HQ"
         };
 
         public string Name => "TheSportsDB";
@@ -285,8 +285,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                     }
 
                     // P1b: strFilename ends with rawFilename
-                    // e.g. rawFilename="2026-03-08 Australian Grand Prix"
-                    //      strFilename="Formula 1 2026-03-08 Australian Grand Prix"
                     if (evFilename.EndsWith(rawFilename.Trim(), StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogInformation("TheSportsDB: P1b (strFilename suffix): \"{F}\"", ev.strFilename);
@@ -294,8 +292,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                     }
 
                     // P1c: prepend series name to rawFilename and match
-                    // e.g. seriesName="Formula 1" + rawFilename="2026-03-08 Australian Grand Prix"
-                    //      -> "Formula 1 2026-03-08 Australian Grand Prix"
                     string rawWithSeries = $"{seriesName} {rawFilename}".Trim();
                     if (string.Equals(evFilename, rawWithSeries, StringComparison.OrdinalIgnoreCase))
                     {
@@ -342,7 +338,6 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 }
 
                 // P5: cleanName contained in strEvent (non-team events: F1, MXGP, etc.)
-                // Handles cases where strFilename is not populated in TheSportsDB
                 if (!string.IsNullOrEmpty(cleanName) && cleanName.Length > 5)
                 {
                     foreach (var ev in evList)
@@ -389,9 +384,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
                 && int.TryParse(m2.Groups[1].Value, out int d2))
             { try { return new DateTime(y2, mo2, d2); } catch { } }
 
-            // YYYY ... NN NN (space-separated, e.g. "EPL 2026 02 23" or "EPL 2026 23 02")
-            // Only attempt if one value is unambiguously a day (> 12) to avoid MM/DD ambiguity.
-            // Ambiguous cases (both <= 12) are skipped - the cleanup script enforces YYYY-MM-DD.
+            // YYYY ... NN NN (space-separated)
             var m3 = Regex.Match(raw, @"\b(19|20)(\d{2})\b\D+\b(\d{2})\b\D+\b(\d{2})\b");
             if (m3.Success && int.TryParse(m3.Groups[1].Value + m3.Groups[2].Value, out int y3)
                 && int.TryParse(m3.Groups[3].Value, out int p1)
@@ -409,7 +402,7 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
         private static string CleanFilename(string raw)
         {
             string name = raw.Replace('.', ' ');
-            name = name.Replace('_', ' ');  // treat underscores as spaces so _ESPN, _SN etc get stripped
+            name = name.Replace('_', ' ');
             name = Regex.Replace(name, @"\bUtd\b", "United", RegexOptions.IgnoreCase);
             // Resolution/quality tags
             name = Regex.Replace(name, @"(\d{2})(\d{3,4}p)", "$1 $2");
@@ -424,7 +417,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             // Suffix strips (Prelims, Main Card etc.)
             foreach (var s in SuffixStrips)
                 name = Regex.Replace(name, @"\b" + Regex.Escape(s) + @"\b", "", RegexOptions.IgnoreCase);
-            // Strip underscore-number remnants e.g. "Lopes 2_02" -> "Lopes 2"
+            // Strip empty parentheses left after suffix removal e.g. "Duncan ()" -> "Duncan"
+            name = Regex.Replace(name, @"\(\s*\)", "", RegexOptions.IgnoreCase).Trim();
+            // Strip underscore-number remnants
             name = Regex.Replace(name, @"\s*_\d+\b", "", RegexOptions.IgnoreCase);
             // League name strips - order matters, longest first
             foreach (var s in LeagueNameStrips)
@@ -436,9 +431,9 @@ namespace Jellyfin.Plugin.TheSportsDB.Providers
             var mE = Regex.Match(name, @"(\d{2})[\.\-_](\d{2})[\.\-_](\d{4})");
             if (mE.Success) name = name.Replace(mE.Value, "").Trim();
             name = Regex.Replace(name, @"\b(19|20)\d{2}\b", "", RegexOptions.IgnoreCase);
-            // Strip isolated leading number e.g. "268 Moreno vs..." -> "Moreno vs..."
+            // Strip isolated leading number
             name = Regex.Replace(name, @"^\d+\s+(?=\S)", "", RegexOptions.IgnoreCase);
-            // Strip trailing rematch/sequence numbers e.g. "Oliveira 2 03" -> "Oliveira"
+            // Strip trailing rematch/sequence numbers
             name = Regex.Replace(name, @"(\s+\d+)+\s*$", "", RegexOptions.IgnoreCase);
             name = Regex.Replace(name, @"\s+", " ").Trim();
             return name.Trim('-', ' ', '~', '_');
