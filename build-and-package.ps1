@@ -90,7 +90,8 @@ if (-not $SkipManifestUpdate) {
     }
 
     $manifestRaw = Get-Content -Path $ManifestFile -Raw
-    $manifest = $manifestRaw | ConvertFrom-Json
+    $manifestParsed = $manifestRaw | ConvertFrom-Json
+    $manifest = @($manifestParsed)
     if (-not $manifest -or $manifest.Count -lt 1) {
         throw "manifest.json format invalid: expected root array with at least one plugin object."
     }
@@ -113,7 +114,9 @@ if (-not $SkipManifestUpdate) {
     $plugin.versions = @($newEntry) + $existing
     $manifest[0] = $plugin
 
-    $manifest | ConvertTo-Json -Depth 100 | Set-Content -Path $ManifestFile -Encoding UTF8
+    $manifestJson = $manifest | ConvertTo-Json -Depth 100
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($ManifestFile, $manifestJson, $utf8NoBom)
     Write-Host "`nUpdated manifest.json with new top version entry." -ForegroundColor Green
     Write-Host "  sourceUrl : $SourceUrl" -ForegroundColor White
     Write-Host "  checksum  : $MD5" -ForegroundColor White
