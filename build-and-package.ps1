@@ -114,7 +114,7 @@ if (-not $SkipManifestUpdate) {
     $plugin.versions = @($newEntry) + $existing
     $manifest[0] = $plugin
 
-    $manifestJson = $manifest | ConvertTo-Json -Depth 100
+    $manifestJson = ConvertTo-Json -InputObject @($manifest) -Depth 100
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($ManifestFile, $manifestJson, $utf8NoBom)
     Write-Host "`nUpdated manifest.json with new top version entry." -ForegroundColor Green
