@@ -73,17 +73,15 @@ public class TheSportsDbClient
         // Filter by sport if available (e.g. &s=Soccer)
         if (!string.IsNullOrEmpty(sportName))
         {
-            url += $"&s={sportName}";
+            url += $"&s={Uri.EscapeDataString(sportName)}";
         }
         
-        // Filter by league NAME (URL slug usually) if available (e.g. &l=English_Premier_League)
-        if (!string.IsNullOrEmpty(leagueName))
+        // eventsday.php currently expects a numeric league id in 'l' (for example l=4370 for Formula 1).
+        // Slugs/names (for example "formula_1") return "Invalid League ID passed".
+        if (!string.IsNullOrEmpty(leagueId))
         {
-            url += $"&l={Uri.EscapeDataString(leagueName)}";
+            url += $"&l={Uri.EscapeDataString(leagueId)}";
         }
-
-        // Note: 'l' parameter expects League Name, not ID. Passing ID causes 0 results.
-        // We will fetch all events for the day (optionally filtered by sport and league) and strict matches will be filtered by the caller/matcher.
         
         return await GetJsonAsync<RootObject>(url, cancellationToken);
     }
