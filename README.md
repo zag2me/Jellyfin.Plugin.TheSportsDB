@@ -178,21 +178,21 @@ The plugin uses a sophisticated matching pipeline to find the correct metadata f
 1. **Derive Series/League Name**: Extracts the league name from your folder structure (parent folder is used for mapping).
 2. **Resolve League ID**: Searches for the league ID in this order:
    - User-configured League Mappings (requires mapping before scanning the library!)
-   - Built-in internal league map (NHL, EPL, NFL, NBA, MLB, UFC)
-   - Local `sports_resolver.db` database
-   - TheSportsDB API search (last resort)
+   - Local `sports_resolver.db` database (name/alias lookup)
 3. **Clean the Filename**: Removes dates, broadcaster tags, and scene tags from the filename
 4. **Expand Team Abbreviations**: Converts common abbreviations to full team names (e.g., `BOS` → Boston Bruins, `NJD` → New Jersey Devils)
 5. **Parse Team Separator**: Detects `vs` (home vs away) or `@` (away @ home) and resolves both team names
-6. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID/slug, and date if available
+6. **Search TheSportsDB API**: Searches for matching events using the cleaned team names, mapped league ID, and date if available
 7. **Date-Based Fallback**: If no match found, falls back to date-based lookup with ±2 day tolerance (helps with timezone slippage)
 8. **Flexible Filename Matching**: Filenames with or without the league prefix are supported (e.g., `2026-03-08 Australian Grand Prix.mkv` works just as well as `Formula 1 2026-03-08 Australian Grand Prix.mkv`).
 
+> **API note:** for TheSportsDB `eventsday.php`, the `l` parameter should be a numeric league ID (for example `4370` for Formula 1), not a slug like `formula_1`.
+
 ---
 
-## 🏆 Known Leagues (Built-in)
+## 🏆 Common League IDs (Quick Reference)
 
-The following leagues have built-in support and don't require manual mapping:
+The following are commonly used league IDs:
 
 | League | League ID | Sport           |
 |--------|-----------|-----------------|
@@ -203,7 +203,7 @@ The following leagues have built-in support and don't require manual mapping:
 | MLB    | 4424      | Baseball ⚾      |
 | UFC    | 4463      | Mixed Martial Arts 🥊 |
 
-**Note:** Any league on TheSportsDB can be used via League Mappings. The above are built-in for convenience.
+**Note:** Any league on TheSportsDB can be used via League Mappings.
 
 ---
 
